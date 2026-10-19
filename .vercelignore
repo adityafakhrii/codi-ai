@@ -1,0 +1,6 @@
+dev-server.js
+edge-functions/
+.edgeone/
+.agents/
+scripts/
+*.md

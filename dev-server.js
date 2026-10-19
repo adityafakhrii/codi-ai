@@ -161,6 +161,7 @@ function isStaticPathAllowed(reqPath) {
 
   // 2. Disallow backend files, package configs, and documentation
   const forbiddenFiles = [
+    '/dev-server.js',
     '/server.js',
     '/package.json',
     '/package-lock.json',

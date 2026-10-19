@@ -4,8 +4,8 @@
   "description": "Codi AI: Asisten Guru Virtual (Chat & Speak) untuk Siswa SD Indonesia",
   "scripts": {
     "build": "echo 'Build OK'",
-    "start": "node server.js",
-    "dev": "node server.js"
+    "start": "node dev-server.js",
+    "dev": "node dev-server.js"
   },
   "keywords": [
     "ai",
