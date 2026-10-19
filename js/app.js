@@ -426,6 +426,14 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function showView(viewKey) {
+    try {
+      if (currentUser && (viewKey === 'teacherSelect' || viewKey === 'chatWorkspace')) {
+        localStorage.setItem('codi_active_view', viewKey);
+      } else if (!currentUser) {
+        localStorage.removeItem('codi_active_view');
+      }
+    } catch (e) {}
+
     // Stop any speech when switching views
     if (typeof stopCurrentMessageAudio === 'function') {
       stopCurrentMessageAudio();
@@ -493,8 +501,7 @@ document.addEventListener('DOMContentLoaded', () => {
     updateUserUI();
     closeAuthModal();
     showToast(`Selamat datang, ${userData.name}!`);
-    const storedTeacher = localStorage.getItem('codi_selected_teacher');
-    enterTeacherWorkspace(storedTeacher && ['math', 'general'].includes(storedTeacher) ? storedTeacher : 'math');
+    showView('teacherSelect');
   }
 
   function logoutUser() {
@@ -503,6 +510,7 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       localStorage.removeItem('codi_auth_user');
       localStorage.removeItem('codi_selected_teacher');
+      localStorage.removeItem('codi_active_view');
     } catch (e) {}
 
     if (window.CodiSpeech) {
@@ -542,8 +550,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const btnLogoutFromSelect = document.getElementById('btn-logout-from-select');
   const btnLogoutFromWorkspace = document.getElementById('btn-logout-from-workspace');
+  const btnSidebarLogout = document.getElementById('btn-sidebar-logout');
   if (btnLogoutFromSelect) btnLogoutFromSelect.addEventListener('click', logoutUser);
   if (btnLogoutFromWorkspace) btnLogoutFromWorkspace.addEventListener('click', logoutUser);
+  if (btnSidebarLogout) btnSidebarLogout.addEventListener('click', logoutUser);
 
   function updateUserUI() {
     if (!currentUser) return;
@@ -2153,8 +2163,18 @@ document.addEventListener('DOMContentLoaded', () => {
   if (currentUser) {
     document.documentElement.classList.add('has-active-session');
     updateUserUI();
-    const storedTeacher = localStorage.getItem('codi_selected_teacher');
-    enterTeacherWorkspace(storedTeacher && ['math', 'general'].includes(storedTeacher) ? storedTeacher : 'math');
+
+    let savedView = 'teacherSelect';
+    try {
+      savedView = localStorage.getItem('codi_active_view') || 'teacherSelect';
+    } catch (e) {}
+
+    if (savedView === 'chatWorkspace' && activeSessionId && chatSessions.some((s) => s.id === activeSessionId)) {
+      switchSession(activeSessionId);
+      showView('chatWorkspace');
+    } else {
+      showView('teacherSelect');
+    }
   } else {
     document.documentElement.classList.remove('has-active-session');
     showView('landing');

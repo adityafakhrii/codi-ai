@@ -257,6 +257,8 @@ img, svg {
   align-items: center;
   gap: 10px;
   text-decoration: none;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 /* Circular Logo */
@@ -273,11 +275,13 @@ img, svg {
   flex-shrink: 0;
 }
 
-.brand-icon-wrapper svg {
+.brand-icon-wrapper svg,
+.brand-icon-wrapper img {
   width: 100%;
   height: 100%;
   border-radius: 50%;
   display: block;
+  object-fit: cover;
 }
 
 .brand-wordmark {
@@ -285,6 +289,7 @@ img, svg {
   font-weight: 800;
   letter-spacing: -0.02em;
   color: var(--text-primary);
+  white-space: nowrap;
 }
 
 .header-actions {
@@ -312,8 +317,8 @@ img, svg {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  height: 40px;
-  min-height: 40px;
+  height: 38px;
+  min-height: 38px;
   padding: 0 16px;
   border-radius: var(--radius-pill);
   font-size: 0.85rem;
@@ -339,8 +344,8 @@ img, svg {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  height: 40px;
-  min-height: 40px;
+  height: 38px;
+  min-height: 38px;
   padding: 0 18px;
   background-color: rgba(255, 255, 255, 0.05);
   border: 1px solid var(--border-subtle);
@@ -439,11 +444,13 @@ img, svg {
   transform: translateY(-4px) scale(1.08);
 }
 
-.hero-inline-icon svg {
+.hero-inline-icon svg,
+.hero-inline-icon img {
   width: 100%;
   height: 100%;
   border-radius: 50%;
   display: block;
+  object-fit: cover;
 }
 
 .hero-subheadline {
@@ -707,6 +714,14 @@ input.pill-input-field:focus-visible,
 
 .codi-3d-viewport:active {
   cursor: grabbing;
+}
+
+.codi-3d-viewport canvas {
+  width: 100% !important;
+  height: 100% !important;
+  display: block;
+  outline: none;
+  touch-action: none;
 }
 
 /* 4 Orbiting Badges (Lucide Line SVGs) */
@@ -1049,6 +1064,21 @@ input.pill-input-field:focus-visible,
   margin-top: -6px;
 }
 
+.foot-nav-link {
+  font-size: 0.92rem;
+  font-weight: 550;
+  color: var(--text-muted);
+  text-decoration: none;
+  transition: color 0.18s ease;
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.foot-nav-link:hover {
+  color: var(--text-primary);
+}
+
 .foot-base {
   display: flex;
   flex-wrap: wrap;
@@ -1146,20 +1176,16 @@ input.pill-input-field:focus-visible,
    10. Responsive Media Queries (Mobile-First Polish)
    -------------------------------------------------------------------------- */
 @media (max-width: 1024px) {
-  /* Unclutter mascot: hide floating chips on mobile & tablet so character is pure & prominent like Agibot */
+  /* Unclutter mascot: hide floating chips on mobile & tablet so character is pure & prominent */
   .orbit-badge {
     display: none !important;
-  }
-
-  .btn-header-login {
-    display: none !important; /* Minimal header matching Agibot iPhone reference: only Kontak on right */
   }
 }
 
 @media (max-width: 768px) {
   .site-header .container {
-    padding-left: 20px;
-    padding-right: 20px;
+    padding-left: 16px;
+    padding-right: 16px;
   }
 
   .site-header {
@@ -1168,18 +1194,82 @@ input.pill-input-field:focus-visible,
 
   .header-inner {
     height: 52px;
+    gap: 8px;
+  }
+
+  .brand-link {
+    flex-shrink: 0;
+    gap: 8px;
+  }
+
+  .brand-wordmark {
+    font-size: 0.96rem;
+    white-space: nowrap;
+  }
+
+  .header-actions {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  .btn-pwa-install {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    min-height: 36px;
+    padding: 0 !important;
+    border-radius: 50% !important;
+    box-sizing: border-box;
+    flex-shrink: 0;
+  }
+
+  .btn-pwa-install span {
+    display: none !important;
+  }
+
+  .btn-theme-toggle {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    min-height: 36px;
+    border-radius: 50% !important;
+    box-sizing: border-box;
+    flex-shrink: 0;
+  }
+
+  .btn-header-login {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    height: 36px;
+    min-height: 36px;
+    padding: 0 12px;
+    font-size: 0.80rem;
+    gap: 6px;
+    box-sizing: border-box;
+    white-space: nowrap;
+    flex-shrink: 0;
+    border-radius: var(--radius-pill);
   }
 
   .nav-link {
     font-size: 0.95rem;
     font-weight: 550;
-    color: #FFFFFF;
+    color: var(--text-muted);
     min-height: 40px;
   }
 
   .hero-section {
     min-height: calc(100svh - 52px);
-    padding-top: clamp(32px, 6vh, 48px);
+    padding-top: clamp(52px, 8.5vh, 76px);
     display: flex;
     flex-direction: column;
     justify-content: space-between;
@@ -1210,20 +1300,22 @@ input.pill-input-field:focus-visible,
   .conversion-unit {
     max-width: 360px;
     margin-bottom: 14px;
+    width: 100%;
   }
 
   .pill-input-form {
-    padding: 4px 4px 4px 16px;
-    min-height: 50px;
+    padding: 4px 5px 4px 14px;
+    min-height: 48px;
   }
 
   .pill-input-field {
-    font-size: 0.82rem;
+    font-size: 0.80rem;
   }
 
   .btn-pill-submit {
-    padding: 10px 16px;
-    font-size: 0.80rem;
+    padding: 8px 14px;
+    font-size: 0.78rem;
+    min-height: 38px;
   }
 
   .trust-row {
@@ -1236,6 +1328,37 @@ input.pill-input-field:focus-visible,
 
   .trust-dot-separator {
     display: none;
+  }
+
+  .orbit-badge {
+    padding: 5px 10px;
+    font-size: 0.70rem;
+    gap: 5px;
+  }
+
+  .orbit-badge svg {
+    width: 13px;
+    height: 13px;
+  }
+
+  .badge-pos-1 {
+    top: 4%;
+    left: 2%;
+  }
+
+  .badge-pos-2 {
+    top: 4%;
+    right: 2%;
+  }
+
+  .badge-pos-3 {
+    bottom: 10%;
+    left: 2%;
+  }
+
+  .badge-pos-4 {
+    bottom: 10%;
+    right: 2%;
   }
 
   .mascot-hero-stage {

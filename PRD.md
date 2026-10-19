@@ -202,7 +202,7 @@ Landing page mengadopsi bahasa visual referensi (*dark base #0A0A0C, single acce
    - **PWA Install Banner Chip:**
      - Pill mengambang halus dengan ikon unduh ponsel SVG: *"Pasang di Layar HP (PWA)"*.
 3. **Mascot Visual & Orbiting Badges (Mobile Adaptation):**
-   - Karakter 3D Codi naik dari bagian bawah hero, terpotong oleh lipatan layar (*cropped by the mobile fold*). Berbentuk proporsional, halus, dan jelas memiliki wajah ramah, mata bercahaya, dan antena unik.
+   - Karakter 3D Codi ("Otus" Soundwave Owl) naik dari bagian bawah hero, terpotong oleh lipatan layar (*cropped by the mobile fold*). Bertekstur bulu halus violet (*tactile soft fur*) dengan estetika sinematik Agibot, berwajah ramah anak, mata bulat besar ekspresif, paruh lilac, dan headphone terintegrasi.
    - **4 Orbiting Badges (Menggunakan Ikon Garis SVG):**
      - Kiri Atas: `[Ikon Garis Mikrofon] Suara Ramah Anak`
      - Kanan Atas: `[Ikon Garis Penggaris/Segitiga] Guru Matematika Cerdas`

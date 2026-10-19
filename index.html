@@ -23,11 +23,11 @@
 
   <!-- PWA Web App Manifest -->
   <link rel="manifest" href="/manifest.json">
-  <link rel="icon" type="image/svg+xml" href="/icons/icon.svg">
-  <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png">
-  <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
-  <link rel="shortcut icon" href="/icons/favicon-32x32.png">
-  <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png">
+  <link rel="icon" type="image/svg+xml" href="/icons/icon.svg?v=2">
+  <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png?v=2">
+  <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png?v=2">
+  <link rel="shortcut icon" href="/favicon.ico?v=2">
+  <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png?v=2">
 
   <!-- Google Fonts: Plus Jakarta Sans (Non-blocking Asynchronous) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -43,7 +43,9 @@
   <!-- Stylesheets: style.css is immediate; workspace.css is deferred for landing page -->
   <link rel="stylesheet" href="/css/style.css">
   <link rel="preload" as="style" href="/css/workspace.css" onload="this.onload=null;this.rel='stylesheet'">
-  <noscript><link rel="stylesheet" href="/css/workspace.css"></noscript>
+  <noscript>
+    <link rel="stylesheet" href="/css/workspace.css">
+  </noscript>
 
   <!-- Instant Session & Theme Detector: Bypasses landing page & theme flash -->
   <script>
@@ -57,7 +59,7 @@
         if (localStorage.getItem('codi_auth_user')) {
           document.documentElement.classList.add('has-active-session');
         }
-      } catch (e) {}
+      } catch (e) { }
     })();
   </script>
   <style>
@@ -65,6 +67,7 @@
     html.has-active-session:not(.app-mounted) #landing-page-view {
       display: none !important;
     }
+
     html.has-active-session:not(.app-mounted) #chat-workspace-view {
       display: flex !important;
     }
@@ -94,8 +97,8 @@
 
           <!-- Actions Right -->
           <div class="header-actions">
-            <button type="button" class="btn-pwa-install" id="pwa-install-btn" style="display: none;"
-              aria-label="Pasang Aplikasi Codi AI">
+            <button type="button" class="btn-pwa-install" id="pwa-install-btn"
+              aria-label="Pasang Aplikasi Codi AI" title="Pasang Codi AI di Perangkat">
               <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
                 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
                 class="lucide lucide-download">
@@ -107,8 +110,8 @@
             </button>
             <button type="button" class="btn-theme-toggle" id="btn-theme-toggle-landing"
               aria-label="Ganti mode gelap/terang" title="Ganti mode gelap/terang">
-              <svg class="theme-icon-sun" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
-                stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <svg class="theme-icon-sun" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
+                fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                 <circle cx="12" cy="12" r="4" />
                 <path d="M12 2v2" />
                 <path d="M12 20v2" />
@@ -119,8 +122,8 @@
                 <path d="m6.34 17.66-1.41 1.41" />
                 <path d="m19.07 4.93-1.41 1.41" />
               </svg>
-              <svg class="theme-icon-moon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
-                stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <svg class="theme-icon-moon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
+                fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
               </svg>
             </button>
@@ -181,7 +184,7 @@
             <form class="pill-input-form" id="waitlist-form" aria-label="Formulir Pendaftaran Akses Awal Codi AI"
               autocomplete="off" data-bwignore="true" data-bitwarden-ignore="true" data-bwautofill="false">
               <input type="text" inputmode="email" class="pill-input-field" id="waitlist-input"
-                name="waitlist_inquiry_field" placeholder="Email orang tua atau guru..." required
+                name="waitlist_inquiry_field" placeholder="Email orang tua / guru..." required
                 aria-label="Alamat email orang tua atau guru" autocomplete="one-time-code" autocorrect="off"
                 autocapitalize="off" spellcheck="false" aria-autocomplete="none" data-lpignore="true"
                 data-1p-ignore="true" data-bwignore="true" data-bitwarden-ignore="true" data-bwautofill="false"
@@ -429,9 +432,9 @@
           <p class="foot-tag">Asisten guru virtual ramah anak untuk SD di Indonesia.</p>
         </div>
         <nav class="foot-nav" aria-label="Footer Navigasi">
-          <a class="nav-link" href="#hero-title">Daftar Akses Awal</a>
-          <a class="nav-link" href="#faq">Pertanyaan Umum</a>
-          <a class="nav-link" href="mailto:halo@codi.ai" title="halo@codi.ai">Kontak</a>
+          <a class="foot-nav-link nav-link" href="#hero-title">Daftar Akses Awal</a>
+          <a class="foot-nav-link nav-link" href="#faq">Pertanyaan Umum</a>
+          <a class="foot-nav-link nav-link" href="mailto:halo@codi.ai" title="halo@codi.ai">Kontak</a>
         </nav>
       </div>
 
@@ -476,8 +479,8 @@
             </div>
             <button type="button" class="btn-theme-toggle" id="btn-theme-toggle-select"
               aria-label="Ganti mode gelap/terang" title="Ganti mode gelap/terang">
-              <svg class="theme-icon-sun" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
-                stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <svg class="theme-icon-sun" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
+                fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                 <circle cx="12" cy="12" r="4" />
                 <path d="M12 2v2" />
                 <path d="M12 20v2" />
@@ -488,8 +491,8 @@
                 <path d="m6.34 17.66-1.41 1.41" />
                 <path d="m19.07 4.93-1.41 1.41" />
               </svg>
-              <svg class="theme-icon-moon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
-                stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <svg class="theme-icon-moon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
+                fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
               </svg>
             </button>
@@ -505,7 +508,7 @@
         <div class="teacher-select-layout">
           <div class="teacher-select-header">
             <h2 class="teacher-select-title">Pilih Guru Pendamping Belajar</h2>
-            <p class="teacher-select-desc">Dua asisten guru cerdas siap membimbing adik SD belajar mandiri dengan
+            <p class="teacher-select-desc">Tiga asisten guru cerdas siap membimbing adik SD belajar mandiri dengan
               bimbingan runtut dan ramah anak.</p>
           </div>
 
@@ -597,14 +600,16 @@
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
                       stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
                       class="lucide teacher-icon-pancasila-svg">
-                      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                      <polygon
+                        points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
                     </svg>
                   </div>
                   <span class="teacher-grade-label">Pendidikan Pancasila & PKn</span>
                 </div>
                 <h2 class="teacher-card-name">Kak Codi</h2>
                 <div class="teacher-card-subject">Guru Pendidikan Pancasila SD</div>
-                <p class="teacher-card-bio">Membimbing adik mendalami 5 nilai luhur Pancasila, lambang Garuda, hak & kewajiban anak, serta indahnya gotong royong dengan teladan nyata.</p>
+                <p class="teacher-card-bio">Membimbing adik mendalami 5 nilai luhur Pancasila, lambang Garuda, hak &
+                  kewajiban anak, serta indahnya gotong royong dengan teladan nyata.</p>
 
                 <div class="teacher-preview-box">
                   <span class="preview-box-title">Contoh bahan tanya jawab:</span>
@@ -647,7 +652,7 @@
           <div class="sidebar-brand-icon">
             <img src="/icons/icon.svg" alt="Codi AI Mascot" width="22" height="22" class="sidebar-mascot-img">
           </div>
-          <span class="sidebar-brand-title">Riwayat Belajar</span>
+          <span class="sidebar-brand-title">Codi AI</span>
         </div>
         <button type="button" class="btn-sidebar-collapse" id="btn-collapse-sidebar" aria-label="Tutup riwayat obrolan"
           title="Tutup riwayat obrolan">
@@ -710,8 +715,8 @@
       <!-- Expanded Content Wrapper -->
       <div class="sidebar-expanded-body" id="sidebar-expanded-body">
         <div class="sidebar-filter-tabs" role="tablist" aria-label="Pilih Guru & Filter Riwayat">
-          <button type="button" class="filter-tab-pill" data-filter="all" role="tab"
-            aria-selected="false" title="Tampilkan seluruh riwayat obrolan">
+          <button type="button" class="filter-tab-pill" data-filter="all" role="tab" aria-selected="false"
+            title="Tampilkan seluruh riwayat obrolan">
             <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none"
               stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"
               class="filter-tab-icon lucide lucide-layout-grid" aria-hidden="true">
@@ -722,8 +727,8 @@
             </svg>
             <span>Semua</span>
           </button>
-          <button type="button" class="filter-tab-pill is-active" data-filter="math" role="tab"
-            aria-selected="true" title="Ganti asisten ke Pak Codi (Matematika)">
+          <button type="button" class="filter-tab-pill is-active" data-filter="math" role="tab" aria-selected="true"
+            title="Ganti asisten ke Pak Codi (Matematika)">
             <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none"
               stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"
               class="filter-tab-icon lucide lucide-user teacher-icon-man" aria-hidden="true">
@@ -733,8 +738,8 @@
             </svg>
             <span>Pak Codi</span>
           </button>
-          <button type="button" class="filter-tab-pill" data-filter="general" role="tab"
-            aria-selected="false" title="Ganti asisten ke Bu Codi (IPA & Pengetahuan Umum)">
+          <button type="button" class="filter-tab-pill" data-filter="general" role="tab" aria-selected="false"
+            title="Ganti asisten ke Bu Codi (IPA & Pengetahuan Umum)">
             <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none"
               stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"
               class="filter-tab-icon teacher-icon-woman" aria-hidden="true">
@@ -745,12 +750,13 @@
             </svg>
             <span>Bu Codi</span>
           </button>
-          <button type="button" class="filter-tab-pill" data-filter="pancasila" role="tab"
-            aria-selected="false" title="Ganti asisten ke Kak Codi (Pendidikan Pancasila & PKn SD)">
+          <button type="button" class="filter-tab-pill" data-filter="pancasila" role="tab" aria-selected="false"
+            title="Ganti asisten ke Kak Codi (Pendidikan Pancasila & PKn SD)">
             <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none"
               stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"
               class="filter-tab-icon teacher-icon-star" aria-hidden="true">
-              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+              <polygon
+                points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
             </svg>
             <span>Kak Codi</span>
           </button>
@@ -802,6 +808,16 @@
               <line x1="14" x2="14" y1="11" y2="17" />
             </svg>
           </button>
+          <button type="button" class="btn-sidebar-logout" id="btn-sidebar-logout"
+            title="Keluar dari sesi belajar" aria-label="Keluar dari sesi belajar">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+              class="lucide lucide-log-out">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+              <polyline points="16 17 21 12 16 7" />
+              <line x1="21" x2="9" y1="12" y2="12" />
+            </svg>
+          </button>
         </div>
       </div>
     </aside>
@@ -842,8 +858,8 @@
         </div>
 
         <div class="workspace-actions-right">
-          <button type="button" class="btn-nav-new-chat" id="btn-nav-new-chat-mobile"
-            aria-label="Mulai Obrolan Baru" title="Obrolan Baru">
+          <button type="button" class="btn-nav-new-chat" id="btn-nav-new-chat-mobile" aria-label="Mulai Obrolan Baru"
+            title="Obrolan Baru">
             <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none"
               stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"
               class="lucide lucide-square-pen">
@@ -854,8 +870,8 @@
           </button>
           <button type="button" class="btn-theme-toggle" id="btn-theme-toggle-workspace"
             aria-label="Ganti mode gelap/terang" title="Ganti mode gelap/terang">
-            <svg class="theme-icon-sun" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
-              stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <svg class="theme-icon-sun" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
+              fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
               <circle cx="12" cy="12" r="4" />
               <path d="M12 2v2" />
               <path d="M12 20v2" />
@@ -866,8 +882,8 @@
               <path d="m6.34 17.66-1.41 1.41" />
               <path d="m19.07 4.93-1.41 1.41" />
             </svg>
-            <svg class="theme-icon-moon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
-              stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <svg class="theme-icon-moon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
+              fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
             </svg>
           </button>
@@ -893,7 +909,8 @@
             <div class="workspace-3d-viewport" id="workspace-3d-canvas-container"></div>
             <!-- Fallback avatar in case WebGL is disabled or initial loading -->
             <div class="workspace-codi-avatar-fallback" id="workspace-avatar-box" aria-hidden="true">
-              <img src="/img/mascot-avatar-fur.png" alt="Codi AI Mascot" style="width: 100%; height: 100%; object-fit: cover; border-radius: inherit; display: block;">
+              <img src="/img/mascot-avatar-fur.png" alt="Codi AI Mascot"
+                style="width: 100%; height: 100%; object-fit: cover; border-radius: inherit; display: block;">
             </div>
           </div>
 
@@ -1034,19 +1051,12 @@
       </button>
 
       <div class="auth-modal-icon-wrapper">
-        <svg viewBox="0 0 512 512" fill="none" width="100%" height="100%">
-          <circle cx="256" cy="256" r="256" fill="#1E1742" />
-          <rect x="112" y="150" width="288" height="236" rx="98" fill="#6C4CF1" />
-          <ellipse cx="206" cy="254" rx="18" ry="24" fill="#7DF9FF" />
-          <ellipse cx="306" cy="254" rx="18" ry="24" fill="#7DF9FF" />
-          <path d="M238 292 Q256 304 274 292" stroke="#C9B8FF" stroke-width="5" stroke-linecap="round" />
-          <circle cx="256" cy="90" r="18" fill="#C9B8FF" />
-        </svg>
+        <img src="/icons/icon-192.png" alt="Codi AI Logo" width="68" height="68" class="auth-modal-mascot-img">
       </div>
 
       <h2 class="auth-modal-title" id="auth-modal-title">Masuk ke Codi AI</h2>
       <p class="auth-modal-sub">Gunakan Akun Google siswa, akun belajar.id, atau akun orang tua untuk mulai belajar
-        interaktif bersama asisten guru.</p>
+        interaktif bersama Codi AI</p>
 
       <button type="button" class="btn-google-action" id="btn-google-login-action">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
@@ -1104,7 +1114,8 @@
   </div>
 
   <!-- Universal Custom Confirmation & Alert Dialog Modal -->
-  <div class="codi-dialog-backdrop" id="codi-custom-dialog" role="dialog" aria-modal="true" aria-hidden="true" style="display: none;">
+  <div class="codi-dialog-backdrop" id="codi-custom-dialog" role="dialog" aria-modal="true" aria-hidden="true"
+    style="display: none;">
     <div class="codi-dialog-card" id="codi-dialog-card">
       <div class="codi-dialog-icon-wrapper" id="codi-dialog-icon"></div>
       <h3 class="codi-dialog-title" id="codi-dialog-title">Konfirmasi</h3>
@@ -1122,10 +1133,10 @@
   <!-- Scripts: Defer loaded, removed 443KB unused lucide vendor library -->
   <script defer src="/js/vendor/three.min.js"></script>
   <script defer src="/js/vendor/GLTFLoader.js"></script>
-  <script defer src="/js/codi-3d.js"></script>
+  <script defer src="/js/codi-3d.js?v=20261019_1558"></script>
   <script defer src="/js/ai-teacher.js"></script>
   <script defer src="/js/speech.js"></script>
-  <script defer src="/js/app.js"></script>
+  <script defer src="/js/app.js?v=20261019_1635"></script>
 </body>
 
 </html>

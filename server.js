@@ -84,8 +84,8 @@ const COMMON_SECURITY_HEADERS = {
     "script-src 'self' 'unsafe-inline'",
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' https://fonts.gstatic.com data:",
-    "img-src 'self' data: https:",
-    "connect-src 'self' https:",
+    "img-src 'self' data: blob: https:",
+    "connect-src 'self' blob: https:",
     "media-src 'self' data: blob:",
     "object-src 'none'",
     "base-uri 'self'",
@@ -403,7 +403,7 @@ const server = http.createServer(async (req, res) => {
       const rawMessage = typeof data.message === 'string' ? data.message : '';
       const userMessage = rawMessage.trim();
       const rawTeacher = typeof data.teacherId === 'string' ? data.teacherId : 'math';
-      const teacherId = ['math', 'general'].includes(rawTeacher) ? rawTeacher : 'math';
+      const teacherId = ['math', 'general', 'pancasila'].includes(rawTeacher) ? rawTeacher : 'math';
       const history = Array.isArray(data.history) ? data.history : [];
       const userSelectedModel = typeof data.selectedModel === 'string' ? data.selectedModel.trim() : '';
 
@@ -657,9 +657,12 @@ const server = http.createServer(async (req, res) => {
     } else if (reqPath.startsWith('/js/vendor/') || ext === '.woff2' || ext === '.woff' || ext === '.svg' || ext === '.png' || ext === '.jpg') {
       // Static assets cached for 1 year
       headers['Cache-Control'] = 'public, max-age=31536000, immutable';
+    } else if (reqPath.startsWith('/js/') || reqPath.startsWith('/css/')) {
+      // Development live-reload: disable caching for app scripts and stylesheets
+      headers['Cache-Control'] = 'no-cache, no-store, must-revalidate';
     } else {
-      // Application CSS & JS cached with stale-while-revalidate
-      headers['Cache-Control'] = 'public, max-age=86400, stale-while-revalidate=604800';
+      // Other static files
+      headers['Cache-Control'] = 'public, max-age=86400';
     }
 
     const acceptEncoding = req.headers['accept-encoding'] || '';

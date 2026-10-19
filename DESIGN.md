@@ -9,8 +9,8 @@
 * **Hero Headline:** Strictly 1 Single Responsive Line (`clamp`, `white-space: nowrap`)
 * **Minimalist Hero Hierarchy:** Subjudul ringkas 2 baris terukur, input email pill ramping, trust counter bersih tanpa bullet gantung, dan penghapusan kartu badge sekunder demi kelegaan visual.
 * **Frameless Navigation:** Navbar mengambang transparan tanpa garis batas bawah (`border-bottom: none`), sisi kanan mobile hanya menampilkan teks tautan bersih *"Kontak"*.
-* **Clean & Velvety 3D Mascot:** Karakter 3D Three.js tampil murni tanpa cincin orbit yang memotong wajah atau border tebal, menggunakan gradasi vertikal prosedural lembut berlapis dari mahkota lavender bercahaya (`#EAE0FF`) ke violet beludru (`#6C4CF1`) dan bayangan indigo (`#16084C`).
-* **Logo Geometry:** Perfectly Circular (`border-radius: 50%`)
+* **Clean & Velvety 3D Mascot:** Karakter maskot 3D Three.js "Otus" (Soundwave Owl) mengadopsi estetika sinematik Agibot (https://www.agibot.sh/) dengan bulu lembut violet halus (*tactile soft fur*), pencahayaan *restrained violet rim light*, tatapan mata bulat ramah anak usia 7–12 tahun, dan animasi mengambang lembut bersahaja (*understated motion*).
+* **Logo Geometry & Identity:** Perfectly Circular (`border-radius: 50%`) — "Otus" The Soundwave Owl (Archetype: Clean-Modern Neo-Grotesque with Integrated Voice Listening Pods & Golden Amber Beak)
 * **Footer Horizon:** 1:1 Agibot atmospheric cosmic violet horizon glow and letter-by-letter clipped gradient
 * **Kebijakan Ikonografi:** Zero-Emoji Policy — Standar Resmi **Lucide Icons**
 * **Aksesibilitas:** WCAG 2.2 Level AA Mobile Compliant
@@ -103,13 +103,13 @@ Desain Codi AI mengadopsi prinsip **Mobile-First Progressive Web App (PWA)** yan
 
 ---
 
-### 2.3 Karakter Visual 3D: Codi (Procedural Three.js Specs)
+### 2.3 Karakter Visual 3D: Otus The Soundwave Owl (Agibot-Inspired Art Direction)
 
-* **Bentuk Fisik:** Bentuk tubuh organik halus bulat-lonjong proporsional (*smooth rounded pear-capsule*), dilapisi material silikon satin violet cerah dengan clearcoat mengilap halus.
-* **Mata Ekspresif:** Dua bola mata hitam obsidian berkilau (*glossy dark eyes*) dengan titik pantulan cahaya ganda (*specular dots*) di permukaannya. Berkedip halus dengan interpolasi skala Y setiap 3.2–6.5 detik.
-* **Pipi & Senyum:** Pipi merona lembut transparan (`#FF8EC7`) dan garis senyum kurva melengkung ramah.
-* **Aksesoris:** Sepasang bantalan headphone (*ear-cups*) bulat menempel pas di sisi kepala, terhubung bando lengkung, dan antena kecil di puncak kepala dengan bola lampu lavender bercahaya.
-* **Interaktivitas:** Mengambang lembut di tempat, menoleh halus mengikuti arah kursor/sentuhan jari, dan melonjak gembira saat diklik/disentuh.
+* **Material & Tekstur Bulu Lembut (Soft Tactile Fur):** Permukaan kepala dan sayap dilapisi bulu halus violet lembut (*short, fine, soft violet fur*) yang mengikuti kelengkungan kubah kepala dan jambul mahkota (*crest ear-tufts*). Area plat wajah menggunakan bulu lilac pastel halus (`#DCD3F8`), menjaga garis geometri ikonik dan ketajaman fitur wajah.
+* **Mata Ramah & Cerdas (Warm Educational Expression):** Sepasang mata bundar hitam obsidian besar dengan pantulan cahaya bundar putih (*soft restrained catchlights*). Tatapan ramah, tenang, dan bijak, tanpa kesan monster, robotik, ataupun agresif. Berkedip halus natural setiap 3.5–7.0 detik.
+* **Pencahayaan Sinematik Agibot:** Latar kanvas hitam pekat (`#0A0A0C`), pendaran cakrawala ungu (*violet rim lighting*) yang menonjolkan kehalusan serat bulu di siluet luar, dan pencahayaan depan (*frontal fill light*) yang menjaga kontras dan kejelasan wajah di layar HP maupun desktop.
+* **Headphone Soundwave Terintegrasi:** Bando melengkung mulus dan sepasang bantalan telinga bulat (*soundwave ear-cups*) bertekstur halus satin violet dan lilac, dengan pendar cahaya vokal lembut saat berinteraksi.
+* **Animasi Bersahaja (Understated Motion):** Gerakan melayang lambat (*gentle floating idle*), respon menoleh terukur saat kursor/jari digerakkan, transisi halus antar-state (idle, mendengarkan, menjawab), dan performa 60fps tanpa beban komputasi berlebih di perangkat mobile.
 
 ---
 

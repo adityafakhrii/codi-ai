@@ -1,5 +1,5 @@
-// Codi AI PWA Service Worker v2.6.0 (High Performance Optimization)
-const CACHE_NAME = 'codi-ai-cache-v26';
+// Codi AI PWA Service Worker v3.0.0 (Agibot-Style Furry 3D Companion)
+const CACHE_NAME = 'codi-ai-cache-v30';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -11,6 +11,10 @@ const STATIC_ASSETS = [
   '/js/codi-3d.js',
   '/js/vendor/three.min.js',
   '/icons/icon.svg',
+  '/icons/icon-192.png',
+  '/icons/icon-512.png',
+  '/img/mascot-hero-fur.png',
+  '/img/mascot-avatar-fur.png',
   '/manifest.json'
 ];
 
