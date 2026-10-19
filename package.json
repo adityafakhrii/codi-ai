@@ -2,8 +2,8 @@
   "name": "codi-ai",
   "version": "1.0.0",
   "description": "Codi AI: Asisten Guru Virtual (Chat & Speak) untuk Siswa SD Indonesia",
-  "main": "server.js",
   "scripts": {
+    "build": "echo 'Build OK'",
     "start": "node server.js",
     "dev": "node server.js"
   },
