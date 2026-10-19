@@ -382,14 +382,45 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  // Safe Storage with Quota Protection & Automatic Pruning (client-localstorage-schema)
+  const MAX_STORED_SESSIONS = 15;
+  const MAX_MESSAGES_PER_SESSION = 30;
+
+  function pruneSessionsForStorage(sessions) {
+    if (!Array.isArray(sessions)) return [];
+    const trimmed = sessions.slice(0, MAX_STORED_SESSIONS);
+    return trimmed.map(s => {
+      if (Array.isArray(s.messages) && s.messages.length > MAX_MESSAGES_PER_SESSION) {
+        return {
+          ...s,
+          messages: s.messages.slice(-MAX_MESSAGES_PER_SESSION)
+        };
+      }
+      return s;
+    });
+  }
+
   function saveChatSessions() {
     try {
-      localStorage.setItem('codi_chat_sessions', JSON.stringify(chatSessions));
+      const sanitized = pruneSessionsForStorage(chatSessions);
+      localStorage.setItem('codi_chat_sessions', JSON.stringify(sanitized));
       if (activeSessionId) {
         localStorage.setItem('codi_active_session_id', activeSessionId);
       }
     } catch (e) {
-      console.warn('Storage save error:', e);
+      console.warn('Storage save error (mencoba eviksi kuota):', e);
+      try {
+        // Jika kuota hampir penuh (QuotaExceededError), pangkas setengah sesi tertua
+        if (chatSessions.length > 3) {
+          const reduced = chatSessions.slice(0, 3).map(s => ({
+            ...s,
+            messages: s.messages ? s.messages.slice(-15) : []
+          }));
+          localStorage.setItem('codi_chat_sessions', JSON.stringify(reduced));
+        }
+      } catch (retryErr) {
+        console.error('Storage quota exhausted completely:', retryErr);
+      }
     }
   }
 
@@ -1321,44 +1352,65 @@ document.addEventListener('DOMContentLoaded', () => {
     );
   }
 
+  // Hoisted Regular Expressions for High-Performance Markdown Parsing (js-hoist-regexp)
+  const RE_THINK_CLOSED = /<think>[\s\S]*?<\/think>/gi;
+  const RE_THINK_OPEN = /<think>[\s\S]*/gi;
+  const RE_AMP = /&/g;
+  const RE_LT = /</g;
+  const RE_GT = />/g;
+  const RE_EM_DASH = /—/g;
+  const RE_NUM_LIST_MERGED1 = /:\s*(\d+\.\s+)/g;
+  const RE_NUM_LIST_MERGED2 = /([^\n])\s+(\d+\.\s+\*\*)/g;
+  const RE_NUM_LIST_MERGED3 = /([^\n])\s+(\d+\.\s+[A-Z])/g;
+  const RE_END_SENTENCE = /(!|\.)\s+(Pak Codi akan|Bu Codi akan|Kamu pasti bisa|Ayo|Sekarang[,:]?|Pertanyaan\b)/g;
+  const RE_EMOJI_SPLIT = /(💪|✨|🌟|🎯|🚀)\s*(Sekarang|Pertanyaan|Ayo|Coba)/g;
+  const RE_CODE_BLOCK = /```([a-z]*)\n([\s\S]*?)```/g;
+  const RE_INLINE_CODE = /`([^`]+)`/g;
+  const RE_BOLD = /\*\*([^*]+)\*\*/g;
+  const RE_ITALIC = /\*([^*]+)\*/g;
+  const RE_DOUBLE_NEWLINE = /\n\s*\n/;
+  const RE_NUM_LINE = /^\d+\.\s+/;
+  const RE_BULLET_LINE = /^[-*•]\s+/;
+  const RE_LIST_CLEAN = /^\d+\.\s+|^[-*•]\s+/;
+
   function renderMarkdownToHtml(raw) {
     if (!raw) return '';
 
     // 1. Bersihkan token think
-    let text = raw.replace(/<think>[\s\S]*?<\/think>/gi, '').replace(/<think>[\s\S]*/gi, '').trim();
+    let text = raw.replace(RE_THINK_CLOSED, '').replace(RE_THINK_OPEN, '').trim();
 
     // 2. Escape tag HTML berbahaya
     text = text
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;');
+      .replace(RE_AMP, '&amp;')
+      .replace(RE_LT, '&lt;')
+      .replace(RE_GT, '&gt;');
 
     // 3. Normalisasi tanda baca em dash panjang menjadi tanda hubung bersih
-    text = text.replace(/—/g, ' - ');
+    text = text.replace(RE_EM_DASH, ' - ');
 
     // 4. Pisahkan daftar nomor jika tergabung dalam satu baris tanpa baris baru
-    text = text.replace(/:\s*(\d+\.\s+)/g, ':\n$1');
-    text = text.replace(/([^\n])\s+(\d+\.\s+\*\*)/g, '$1\n$2');
-    text = text.replace(/([^\n])\s+(\d+\.\s+[A-Z])/g, '$1\n$2');
+    text = text.replace(RE_NUM_LIST_MERGED1, ':\n$1');
+    text = text.replace(RE_NUM_LIST_MERGED2, '$1\n$2');
+    text = text.replace(RE_NUM_LIST_MERGED3, '$1\n$2');
 
     // 5. Pisahkan kalimat penutup atau pertanyaan di akhir menjadi paragraf tersendiri
-    text = text.replace(/(!|\.)\s+(Pak Codi akan|Bu Codi akan|Kamu pasti bisa|Ayo|Sekarang[,:]?|Pertanyaan\b)/g, '$1\n\n$2');
-    text = text.replace(/(💪|✨|🌟|🎯|🚀)\s*(Sekarang|Pertanyaan|Ayo|Coba)/g, '\n\n$1 $2');
+    text = text.replace(RE_END_SENTENCE, '$1\n\n$2');
+    text = text.replace(RE_EMOJI_SPLIT, '\n\n$1 $2');
 
     // 6. Format Blok Kode
-    text = text.replace(/```([a-z]*)\n([\s\S]*?)```/g, (match, lang, code) => {
+    text = text.replace(RE_CODE_BLOCK, (match, lang, code) => {
       return `<pre class="chat-code-block"><code>${code.trim()}</code></pre>`;
     });
 
     // 7. Format Kode Inline
-    text = text.replace(/`([^`]+)`/g, '<code class="chat-inline-code">$1</code>');
+    text = text.replace(RE_INLINE_CODE, '<code class="chat-inline-code">$1</code>');
 
     // 8. Format Bold (**teks**) dan Italic (*teks*)
-    text = text.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
-    text = text.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+    text = text.replace(RE_BOLD, '<strong>$1</strong>');
+    text = text.replace(RE_ITALIC, '<em>$1</em>');
 
     // 9. Pisahkan blok menjadi Paragraf dan List terstruktur
-    const rawBlocks = text.split(/\n\s*\n/);
+    const rawBlocks = text.split(RE_DOUBLE_NEWLINE);
     const htmlBlocks = rawBlocks.map(block => {
       const trimmedBlock = block.trim();
       if (!trimmedBlock) return '';
@@ -1374,8 +1426,8 @@ document.addEventListener('DOMContentLoaded', () => {
       let listItems = [];
 
       for (const line of lines) {
-        const isNum = /^\d+\.\s+/.test(line);
-        const isBullet = /^[-*•]\s+/.test(line);
+        const isNum = RE_NUM_LINE.test(line);
+        const isBullet = RE_BULLET_LINE.test(line);
 
         if (isNum || isBullet) {
           const currentType = isNum ? 'ol' : 'ul';
@@ -1388,7 +1440,7 @@ document.addEventListener('DOMContentLoaded', () => {
             listType = currentType;
             listItems = [];
           }
-          const cleaned = line.replace(/^\d+\.\s+|^[-*•]\s+/, '');
+          const cleaned = line.replace(RE_LIST_CLEAN, '');
           listItems.push(`<li>${cleaned}</li>`);
         } else {
           if (inList) {
@@ -1809,9 +1861,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
         function sanitizeStreamOutput(raw) {
           // Bersihkan blok <think>...</think> dan tag think yang belum selesai
-          let clean = raw.replace(/<think>[\s\S]*?<\/think>/gi, '');
-          clean = clean.replace(/<think>[\s\S]*/gi, '');
+          let clean = raw.replace(RE_THINK_CLOSED, '');
+          clean = clean.replace(RE_THINK_OPEN, '');
           return clean.trimStart();
+        }
+
+        // Batched Streaming Renderer via requestAnimationFrame (js-batch-dom-css, rendering-usetransition-loading)
+        let renderRafId = null;
+
+        function scheduleBatchedRender() {
+          if (renderRafId) return;
+          renderRafId = requestAnimationFrame(() => {
+            renderRafId = null;
+            const displayText = sanitizeStreamOutput(fullText);
+            if (displayText) {
+              textSpan.innerHTML = renderMarkdownToHtml(displayText);
+              scrollChatToBottom(false);
+            }
+          });
         }
 
         while (true) {
@@ -1833,21 +1900,18 @@ document.addEventListener('DOMContentLoaded', () => {
               const delta = parsed.choices && parsed.choices[0] && parsed.choices[0].delta ? parsed.choices[0].delta.content : '';
               if (delta) {
                 fullText += delta;
-                const displayText = sanitizeStreamOutput(fullText);
-                if (displayText) {
-                  textSpan.innerHTML = renderMarkdownToHtml(displayText);
-                  scrollChatToBottom(false);
-                }
+                scheduleBatchedRender();
               }
             } catch (e) {
               fullText += dataStr;
-              const displayText = sanitizeStreamOutput(fullText);
-              if (displayText) {
-                textSpan.innerHTML = renderMarkdownToHtml(displayText);
-                scrollChatToBottom(false);
-              }
+              scheduleBatchedRender();
             }
           }
+        }
+
+        if (renderRafId) {
+          cancelAnimationFrame(renderRafId);
+          renderRafId = null;
         }
 
         fullText = sanitizeStreamOutput(fullText);
@@ -1855,6 +1919,7 @@ document.addEventListener('DOMContentLoaded', () => {
           fullText = 'Wah, jawaban dari AI belum diterima. Coba ulangi pertanyaanmu ya!';
         }
         textSpan.innerHTML = renderMarkdownToHtml(fullText);
+        scrollChatToBottom(false);
 
         finalizeAiResponse();
 

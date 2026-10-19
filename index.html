@@ -26,16 +26,21 @@
   <link rel="icon" type="image/svg+xml" href="/icons/icon.svg">
   <link rel="apple-touch-icon" href="/icons/icon.svg">
 
-  <!-- Google Fonts: Plus Jakarta Sans & JetBrains Mono -->
+  <!-- Google Fonts: Plus Jakarta Sans (Non-blocking Asynchronous) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link
-    href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap"
-    rel="stylesheet">
+  <link rel="preload" as="style"
+    href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+    onload="this.onload=null;this.rel='stylesheet'">
+  <noscript>
+    <link rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap">
+  </noscript>
 
-  <!-- Stylesheets -->
+  <!-- Stylesheets: style.css is immediate; workspace.css is deferred for landing page -->
   <link rel="stylesheet" href="/css/style.css">
-  <link rel="stylesheet" href="/css/workspace.css">
+  <link rel="preload" as="style" href="/css/workspace.css" onload="this.onload=null;this.rel='stylesheet'">
+  <noscript><link rel="stylesheet" href="/css/workspace.css"></noscript>
 
   <!-- Instant Session & Theme Detector: Bypasses landing page & theme flash -->
   <script>
@@ -556,7 +561,7 @@
       <div class="container">
         <div class="teacher-select-layout">
           <div class="teacher-select-header">
-            <h1 class="teacher-select-title">Pilih Guru Pendamping Belajar</h1>
+            <h2 class="teacher-select-title">Pilih Guru Pendamping Belajar</h2>
             <p class="teacher-select-desc">Dua asisten guru cerdas siap membimbing adik SD belajar mandiri dengan
               bimbingan runtut dan ramah anak.</p>
           </div>
@@ -1148,13 +1153,12 @@
   <!-- Notification Toast -->
   <div class="toast-notice" id="toast-notice" role="status" aria-live="polite"></div>
 
-  <!-- Scripts: Vendor Libraries first, then 3D Engine, then Pedagogical AI & Voice, then App Logic -->
-  <script src="/js/vendor/three.min.js"></script>
-  <script src="/js/vendor/lucide.min.js"></script>
-  <script src="/js/codi-3d.js"></script>
-  <script src="/js/ai-teacher.js"></script>
-  <script src="/js/speech.js"></script>
-  <script src="/js/app.js"></script>
+  <!-- Scripts: Defer loaded, removed 443KB unused lucide vendor library -->
+  <script defer src="/js/vendor/three.min.js"></script>
+  <script defer src="/js/codi-3d.js"></script>
+  <script defer src="/js/ai-teacher.js"></script>
+  <script defer src="/js/speech.js"></script>
+  <script defer src="/js/app.js"></script>
 </body>
 
 </html>

@@ -419,14 +419,49 @@
       blinkState.timer = 0;
     }
 
-    // I. Intersection Observer
+    // I. Intersection Observer & Tab Visibility Check with Smart Execution Management (rendering-activity)
     let isVisible = true;
+    let isTabVisible = !document.hidden;
+    let isRunning = false;
+    let animRafId = null;
+
+    function startAnimation() {
+      if (isRunning) return;
+      if (!isVisible || !isTabVisible || container.offsetParent === null) return;
+      isRunning = true;
+      clock.start();
+      animRafId = requestAnimationFrame(animate);
+    }
+
+    function stopAnimation() {
+      isRunning = false;
+      if (animRafId) {
+        cancelAnimationFrame(animRafId);
+        animRafId = null;
+      }
+      clock.stop();
+    }
+
     const observer = new IntersectionObserver((entries) => {
       entries.forEach((entry) => {
         isVisible = entry.isIntersecting;
+        if (isVisible && isTabVisible && container.offsetParent !== null) {
+          startAnimation();
+        } else {
+          stopAnimation();
+        }
       });
     }, { threshold: 0.05 });
     observer.observe(container);
+
+    document.addEventListener('visibilitychange', () => {
+      isTabVisible = !document.hidden;
+      if (isVisible && isTabVisible && container.offsetParent !== null) {
+        startAnimation();
+      } else {
+        stopAnimation();
+      }
+    });
 
     function onResize() {
       if (!container) return;
@@ -446,8 +481,22 @@
       if (halo) {
         halo.visible = !isWorkspace && window.innerWidth > 768;
       }
+
+      if (isVisible && isTabVisible && container.offsetParent !== null) {
+        startAnimation();
+      }
     }
-    window.addEventListener('resize', onResize);
+
+    // Passive throttled resize listener (client-passive-event-listeners)
+    let resizeRafId = null;
+    function handleResize() {
+      if (resizeRafId) return;
+      resizeRafId = requestAnimationFrame(() => {
+        resizeRafId = null;
+        onResize();
+      });
+    }
+    window.addEventListener('resize', handleResize, { passive: true });
 
     // J. State & Smooth Animation Interpolation
     let speechInfluence = 0.0;
@@ -458,10 +507,12 @@
 
     // K. Animation Render Loop
     function animate() {
-      requestAnimationFrame(animate);
-
-      // Skip render calculations when canvas container is hidden or scrolled off
-      if (!isVisible || container.offsetParent === null) return;
+      if (!isRunning) return;
+      if (!isVisible || !isTabVisible || container.offsetParent === null) {
+        stopAnimation();
+        return;
+      }
+      animRafId = requestAnimationFrame(animate);
 
       const delta = clock.getDelta();
       const elapsedTime = clock.getElapsedTime();
@@ -605,12 +656,14 @@
       renderer.render(scene, camera);
     }
 
-    animate();
+    startAnimation();
 
     return {
       container,
       isWorkspace,
       onResize,
+      startAnimation,
+      stopAnimation,
       setTheme: function (themeId) {
         if (themeId === 'general') {
           eyeMaterial.color.setHex(0x6EE7B7);
@@ -673,6 +726,7 @@
     initInstances();
     activeInstances.forEach((inst) => {
       if (inst.onResize) inst.onResize();
+      if (inst.startAnimation) inst.startAnimation();
     });
   };
 

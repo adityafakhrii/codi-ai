@@ -1,5 +1,5 @@
-// Codi AI PWA Service Worker v2.1.0 (Real LLM API Integration)
-const CACHE_NAME = 'codi-ai-cache-v24';
+// Codi AI PWA Service Worker v2.6.0 (High Performance Optimization)
+const CACHE_NAME = 'codi-ai-cache-v26';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -10,7 +10,6 @@ const STATIC_ASSETS = [
   '/js/speech.js',
   '/js/codi-3d.js',
   '/js/vendor/three.min.js',
-  '/js/vendor/lucide.min.js',
   '/icons/icon.svg',
   '/manifest.json'
 ];
@@ -40,45 +39,43 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
 
-  const isSameOrigin = event.request.url.startsWith(self.location.origin);
+  const url = new URL(event.request.url);
 
-  if (isSameOrigin) {
-    // Network-first for local code to always reflect latest updates in development
+  // Do not intercept or cache real-time AI endpoints
+  if (url.pathname.startsWith('/api/')) {
+    return;
+  }
+
+  const isSameOrigin = url.origin === self.location.origin;
+
+  if (event.request.mode === 'navigate') {
+    // Navigation: Network-first with cache fallback
     event.respondWith(
-      fetch(event.request).then((networkResponse) => {
-        if (networkResponse && networkResponse.status === 200) {
-          const responseToCache = networkResponse.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, responseToCache);
-          });
-        }
-        return networkResponse;
-      }).catch(() => {
-        return caches.match(event.request).then((cached) => {
-          if (cached) return cached;
-          if (event.request.mode === 'navigate') {
-            return caches.match('/index.html');
-          }
-        });
-      })
-    );
-  } else {
-    // Cache-first for third-party fonts / external static assets
-    event.respondWith(
-      caches.match(event.request).then((cachedResponse) => {
-        if (cachedResponse) {
-          return cachedResponse;
-        }
-        return fetch(event.request).then((networkResponse) => {
+      fetch(event.request)
+        .then((networkResponse) => {
           if (networkResponse && networkResponse.status === 200) {
-            const responseToCache = networkResponse.clone();
-            caches.open(CACHE_NAME).then((cache) => {
-              cache.put(event.request, responseToCache);
-            });
+            const copy = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
           }
           return networkResponse;
-        });
-      })
+        })
+        .catch(() => caches.match('/index.html'))
     );
+    return;
   }
+
+  // Static Assets: Stale-While-Revalidate for instant render & background update
+  event.respondWith(
+    caches.match(event.request).then((cachedResponse) => {
+      const fetchPromise = fetch(event.request).then((networkResponse) => {
+        if (networkResponse && networkResponse.status === 200) {
+          const copy = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+        }
+        return networkResponse;
+      }).catch(() => null);
+
+      return cachedResponse || fetchPromise;
+    })
+  );
 });

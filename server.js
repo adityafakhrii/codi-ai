@@ -1,10 +1,12 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const zlib = require('zlib');
 
-// 1. Load environment variables from .env
+// 1. Load environment variables from .env with automatic file watching
+const envPath = path.join(__dirname, '.env');
+
 function loadEnv() {
-  const envPath = path.join(__dirname, '.env');
   if (fs.existsSync(envPath)) {
     try {
       const content = fs.readFileSync(envPath, 'utf8');
@@ -31,6 +33,20 @@ function loadEnv() {
 
 loadEnv();
 
+// Watch .env for changes asynchronously without blocking HTTP requests (server-hoist-static-io)
+if (fs.existsSync(envPath)) {
+  try {
+    fs.watch(envPath, (eventType) => {
+      if (eventType === 'change') {
+        console.log('Perubahan pada .env terdeteksi, memuat ulang konfigurasi...');
+        loadEnv();
+      }
+    });
+  } catch (watchErr) {
+    console.warn('Tidak dapat memasang watcher pada .env:', watchErr.message);
+  }
+}
+
 const PORT = process.env.PORT || 3000;
 const PUBLIC_DIR = __dirname;
 
@@ -48,6 +64,10 @@ const MIME_TYPES = {
   '.woff2': 'font/woff2',
   '.ttf': 'font/ttf'
 };
+
+// High-performance In-Memory Static File Compression Cache (server-cache-lru)
+const COMPRESSION_CACHE = new Map();
+const MAX_CACHE_ENTRIES = 60;
 
 // Pedagogical System Prompts for Elementary Students (Ages 7-12)
 function getSystemPrompt(teacherId) {
@@ -109,20 +129,23 @@ function getSystemPrompt(teacherId) {
   ].join('\n');
 }
 
-// Read JSON Body Helper
+// Read JSON Body Helper with high-performance buffer accumulation
 function readJsonBody(req) {
   return new Promise((resolve, reject) => {
-    let body = '';
+    const chunks = [];
+    let totalLength = 0;
     req.on('data', chunk => {
-      body += chunk;
-      if (body.length > 1e6) {
+      chunks.push(chunk);
+      totalLength += chunk.length;
+      if (totalLength > 1e6) {
         req.destroy();
         reject(new Error('Payload too large'));
       }
     });
     req.on('end', () => {
       try {
-        resolve(body ? JSON.parse(body) : {});
+        const raw = Buffer.concat(chunks).toString('utf8');
+        resolve(raw ? JSON.parse(raw) : {});
       } catch (err) {
         reject(err);
       }
@@ -151,8 +174,6 @@ const server = http.createServer(async (req, res) => {
 
   // Endpoint 1: Status LLM Configuration
   if (req.method === 'GET' && pathname === '/api/status') {
-    // Re-check .env in case user updated it without restarting
-    loadEnv();
     const isConfigured = Boolean(process.env.LLM_API_KEY && process.env.LLM_API_KEY.trim().length > 0);
     const models = getConfiguredModels();
 
@@ -169,7 +190,6 @@ const server = http.createServer(async (req, res) => {
 
   // Endpoint 2: Real LLM Chat Stream with Multi-Model Automatic Failover
   if (req.method === 'POST' && pathname === '/api/chat') {
-    loadEnv();
     const apiKey = (process.env.LLM_API_KEY || '').trim();
     const baseUrl = (process.env.LLM_BASE_URL || 'https://api.openai.com/v1').replace(/\/+$/, '');
     const models = getConfiguredModels();
@@ -245,7 +265,9 @@ const server = http.createServer(async (req, res) => {
 
         try {
           const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 25000);
+          // Failover agresif: 9 detik jika masih ada model cadangan lain, 20 detik jika model terakhir
+          const timeoutMs = (i < candidateModels.length - 1) ? 9000 : 20000;
+          const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
           const apiRes = await fetch(endpoint, {
             method: 'POST',
@@ -322,7 +344,7 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // 3. Static File Serving
+  // 3. Static File Serving with Compression & Caching Headers
   let reqPath = decodeURI(pathname);
   if (reqPath === '/') {
     reqPath = '/index.html';
@@ -340,14 +362,95 @@ const server = http.createServer(async (req, res) => {
 
     const ext = path.extname(filePath).toLowerCase();
     const contentType = MIME_TYPES[ext] || 'application/octet-stream';
+    const etag = `W/"${stats.size.toString(16)}-${stats.mtime.getTime().toString(16)}"`;
 
-    const headers = { 'Content-Type': contentType };
-    if (reqPath === '/sw.js') {
-      headers['Service-Worker-Allowed'] = '/';
+    // 304 Not Modified validation
+    const clientEtag = req.headers['if-none-match'];
+    if (clientEtag && clientEtag === etag) {
+      res.writeHead(304, { 'ETag': etag });
+      res.end();
+      return;
     }
 
-    res.writeHead(200, headers);
-    fs.createReadStream(filePath).pipe(res);
+    const headers = {
+      'Content-Type': contentType,
+      'ETag': etag
+    };
+
+    if (reqPath === '/sw.js') {
+      headers['Service-Worker-Allowed'] = '/';
+      headers['Cache-Control'] = 'no-cache, no-store, must-revalidate';
+    } else if (reqPath === '/index.html') {
+      // HTML is fast-cached with revalidation
+      headers['Cache-Control'] = 'no-cache';
+    } else if (reqPath.startsWith('/js/vendor/') || ext === '.woff2' || ext === '.woff' || ext === '.svg' || ext === '.png' || ext === '.jpg') {
+      // Static assets cached for 1 year
+      headers['Cache-Control'] = 'public, max-age=31536000, immutable';
+    } else {
+      // Application CSS & JS cached with stale-while-revalidate
+      headers['Cache-Control'] = 'public, max-age=86400, stale-while-revalidate=604800';
+    }
+
+    const acceptEncoding = req.headers['accept-encoding'] || '';
+    const compressible = ['.html', '.css', '.js', '.json', '.svg'].includes(ext);
+
+    let encoding = null;
+    if (compressible) {
+      if (/\bbr\b/.test(acceptEncoding) && typeof zlib.brotliCompress === 'function') {
+        encoding = 'br';
+      } else if (/\bgzip\b/.test(acceptEncoding)) {
+        encoding = 'gzip';
+      }
+    }
+
+    if (encoding) {
+      const cacheKey = `${filePath}:${encoding}`;
+      const cached = COMPRESSION_CACHE.get(cacheKey);
+
+      if (cached && cached.mtime === stats.mtimeMs) {
+        headers['Content-Encoding'] = encoding;
+        headers['Content-Length'] = cached.buffer.length;
+        res.writeHead(200, headers);
+        res.end(cached.buffer);
+        return;
+      }
+
+      // Read file and compress to cache
+      fs.readFile(filePath, (readErr, rawBuffer) => {
+        if (readErr) {
+          res.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8' });
+          res.end('500 Internal Server Error');
+          return;
+        }
+
+        const compressFn = encoding === 'br' ? zlib.brotliCompress : zlib.gzip;
+        compressFn(rawBuffer, (compErr, compressedBuffer) => {
+          if (compErr) {
+            // Fallback uncompressed
+            res.writeHead(200, headers);
+            res.end(rawBuffer);
+            return;
+          }
+
+          if (COMPRESSION_CACHE.size >= MAX_CACHE_ENTRIES) {
+            const firstKey = COMPRESSION_CACHE.keys().next().value;
+            COMPRESSION_CACHE.delete(firstKey);
+          }
+          COMPRESSION_CACHE.set(cacheKey, {
+            buffer: compressedBuffer,
+            mtime: stats.mtimeMs
+          });
+
+          headers['Content-Encoding'] = encoding;
+          headers['Content-Length'] = compressedBuffer.length;
+          res.writeHead(200, headers);
+          res.end(compressedBuffer);
+        });
+      });
+    } else {
+      res.writeHead(200, headers);
+      fs.createReadStream(filePath).pipe(res);
+    }
   });
 });
 
