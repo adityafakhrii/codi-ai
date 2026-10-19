@@ -24,7 +24,10 @@
   <!-- PWA Web App Manifest -->
   <link rel="manifest" href="/manifest.json">
   <link rel="icon" type="image/svg+xml" href="/icons/icon.svg">
-  <link rel="apple-touch-icon" href="/icons/icon.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
+  <link rel="shortcut icon" href="/icons/favicon-32x32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png">
 
   <!-- Google Fonts: Plus Jakarta Sans (Non-blocking Asynchronous) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -84,22 +87,7 @@
           <!-- Circular Mascot Logo & Wordmark Left -->
           <a href="/" class="brand-link" aria-label="Codi AI Halaman Utama">
             <div class="brand-icon-wrapper">
-              <svg viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                <circle cx="256" cy="256" r="256" fill="#1E1742" />
-                <rect x="94" y="235" width="26" height="65" rx="13" fill="#4B2EC7" />
-                <rect x="392" y="235" width="26" height="65" rx="13" fill="#4B2EC7" />
-                <rect x="112" y="150" width="288" height="236" rx="98" fill="#6C4CF1" />
-                <rect x="144" y="196" width="224" height="136" rx="58" fill="#07060D" />
-                <ellipse cx="206" cy="254" rx="18" ry="24" fill="#7DF9FF" />
-                <ellipse cx="203" cy="247" rx="6" ry="8" fill="#FFFFFF" />
-                <ellipse cx="306" cy="254" rx="18" ry="24" fill="#7DF9FF" />
-                <ellipse cx="303" cy="247" rx="6" ry="8" fill="#FFFFFF" />
-                <path d="M238 292 Q256 304 274 292" stroke="#C9B8FF" stroke-width="5" stroke-linecap="round" />
-                <ellipse cx="176" cy="276" rx="12" ry="6" fill="#FF8EC7" opacity="0.6" />
-                <ellipse cx="336" cy="276" rx="12" ry="6" fill="#FF8EC7" opacity="0.6" />
-                <path d="M256 150 L256 100" stroke="#8E70FF" stroke-width="10" stroke-linecap="round" />
-                <circle cx="256" cy="90" r="18" fill="#C9B8FF" />
-              </svg>
+              <img src="/icons/icon.svg" alt="Codi AI Mascot" width="32" height="32" class="brand-mascot-img">
             </div>
             <span class="brand-wordmark">CODI AI</span>
           </a>
@@ -176,22 +164,7 @@
             <span class="hero-title-text">
               Belajar Pintar
               <span class="hero-inline-icon" title="Codi AI Mascot">
-                <svg viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                  <circle cx="256" cy="256" r="256" fill="#1E1742" />
-                  <rect x="94" y="235" width="26" height="65" rx="13" fill="#4B2EC7" />
-                  <rect x="392" y="235" width="26" height="65" rx="13" fill="#4B2EC7" />
-                  <rect x="112" y="150" width="288" height="236" rx="98" fill="#6C4CF1" />
-                  <rect x="144" y="196" width="224" height="136" rx="58" fill="#07060D" />
-                  <ellipse cx="206" cy="254" rx="18" ry="24" fill="#7DF9FF" />
-                  <ellipse cx="203" cy="247" rx="6" ry="8" fill="#FFFFFF" />
-                  <ellipse cx="306" cy="254" rx="18" ry="24" fill="#7DF9FF" />
-                  <ellipse cx="303" cy="247" rx="6" ry="8" fill="#FFFFFF" />
-                  <path d="M238 292 Q256 304 274 292" stroke="#C9B8FF" stroke-width="5" stroke-linecap="round" />
-                  <ellipse cx="176" cy="276" rx="12" ry="6" fill="#FF8EC7" opacity="0.6" />
-                  <ellipse cx="336" cy="276" rx="12" ry="6" fill="#FF8EC7" opacity="0.6" />
-                  <path d="M256 150 L256 100" stroke="#8E70FF" stroke-width="10" stroke-linecap="round" />
-                  <circle cx="256" cy="90" r="18" fill="#C9B8FF" />
-                </svg>
+                <img src="/icons/icon.svg" alt="Codi AI Mascot" width="48" height="48" class="hero-mascot-img">
               </span>
               Bersama Codi
             </span>
@@ -285,8 +258,8 @@
             <div class="codi-3d-viewport" id="codi-3d-canvas-container"
               title="Klik atau sentuh Codi untuk berinteraksi!">
               <noscript>
-                <img src="/icons/icon.svg" alt="Codi AI Mascot 3D"
-                  style="width: 240px; margin: 0 auto; display: block;">
+                <img src="/img/mascot-hero-fur.png" alt="Codi AI Mascot 3D"
+                  style="width: 100%; max-width: 580px; margin: 0 auto; display: block; object-fit: contain;">
               </noscript>
             </div>
 
@@ -449,22 +422,7 @@
         <div class="foot-brand">
           <a class="brand" href="/" aria-label="Codi AI, kembali ke atas">
             <div class="brand-icon-wrapper footer-icon-wrapper">
-              <svg viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                <circle cx="256" cy="256" r="256" fill="#1E1742" />
-                <rect x="94" y="235" width="26" height="65" rx="13" fill="#4B2EC7" />
-                <rect x="392" y="235" width="26" height="65" rx="13" fill="#4B2EC7" />
-                <rect x="112" y="150" width="288" height="236" rx="98" fill="#6C4CF1" />
-                <rect x="144" y="196" width="224" height="136" rx="58" fill="#07060D" />
-                <ellipse cx="206" cy="254" rx="18" ry="24" fill="#7DF9FF" />
-                <ellipse cx="203" cy="247" rx="6" ry="8" fill="#FFFFFF" />
-                <ellipse cx="306" cy="254" rx="18" ry="24" fill="#7DF9FF" />
-                <ellipse cx="303" cy="247" rx="6" ry="8" fill="#FFFFFF" />
-                <path d="M238 292 Q256 304 274 292" stroke="#C9B8FF" stroke-width="5" stroke-linecap="round" />
-                <ellipse cx="176" cy="276" rx="12" ry="6" fill="#FF8EC7" opacity="0.6" />
-                <ellipse cx="336" cy="276" rx="12" ry="6" fill="#FF8EC7" opacity="0.6" />
-                <path d="M256 150 L256 100" stroke="#8E70FF" stroke-width="10" stroke-linecap="round" />
-                <circle cx="256" cy="90" r="18" fill="#C9B8FF" />
-              </svg>
+              <img src="/icons/icon.svg" alt="Codi AI Mascot" width="32" height="32" class="brand-mascot-img">
             </div>
             <span>Codi AI</span>
           </a>
@@ -506,22 +464,7 @@
         <div class="header-inner">
           <a href="/" class="brand-link" aria-label="Codi AI Halaman Utama">
             <div class="brand-icon-wrapper">
-              <svg viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                <circle cx="256" cy="256" r="256" fill="#1E1742" />
-                <rect x="94" y="235" width="26" height="65" rx="13" fill="#4B2EC7" />
-                <rect x="392" y="235" width="26" height="65" rx="13" fill="#4B2EC7" />
-                <rect x="112" y="150" width="288" height="236" rx="98" fill="#6C4CF1" />
-                <rect x="144" y="196" width="224" height="136" rx="58" fill="#07060D" />
-                <ellipse cx="206" cy="254" rx="18" ry="24" fill="#7DF9FF" />
-                <ellipse cx="203" cy="247" rx="6" ry="8" fill="#FFFFFF" />
-                <ellipse cx="306" cy="254" rx="18" ry="24" fill="#7DF9FF" />
-                <ellipse cx="303" cy="247" rx="6" ry="8" fill="#FFFFFF" />
-                <path d="M238 292 Q256 304 274 292" stroke="#C9B8FF" stroke-width="5" stroke-linecap="round" />
-                <ellipse cx="176" cy="276" rx="12" ry="6" fill="#FF8EC7" opacity="0.6" />
-                <ellipse cx="336" cy="276" rx="12" ry="6" fill="#FF8EC7" opacity="0.6" />
-                <path d="M256 150 L256 100" stroke="#8E70FF" stroke-width="10" stroke-linecap="round" />
-                <circle cx="256" cy="90" r="18" fill="#C9B8FF" />
-              </svg>
+              <img src="/icons/icon.svg" alt="Codi AI Mascot" width="32" height="32" class="brand-mascot-img">
             </div>
             <span class="brand-wordmark">CODI AI</span>
           </a>
@@ -645,6 +588,41 @@
                 </button>
               </div>
             </div>
+
+            <!-- Card 3: Guru Pendidikan Pancasila SD -->
+            <div class="teacher-card teacher-card-pancasila">
+              <div class="teacher-card-body">
+                <div class="teacher-card-top">
+                  <div class="teacher-card-icon teacher-icon-pancasila" aria-hidden="true">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                      stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                      class="lucide teacher-icon-pancasila-svg">
+                      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                    </svg>
+                  </div>
+                  <span class="teacher-grade-label">Pendidikan Pancasila & PKn</span>
+                </div>
+                <h2 class="teacher-card-name">Kak Codi</h2>
+                <div class="teacher-card-subject">Guru Pendidikan Pancasila SD</div>
+                <p class="teacher-card-bio">Membimbing adik mendalami 5 nilai luhur Pancasila, lambang Garuda, hak & kewajiban anak, serta indahnya gotong royong dengan teladan nyata.</p>
+
+                <div class="teacher-preview-box">
+                  <span class="preview-box-title">Contoh bahan tanya jawab:</span>
+                  <ul class="preview-prompt-list">
+                    <li>Arti lambang Bintang dan 5 Sila</li>
+                    <li>Contoh nyata pengamalan sila di sekolah</li>
+                    <li>Perbedaan hak dan kewajiban anak</li>
+                  </ul>
+                </div>
+              </div>
+
+              <div class="teacher-card-action">
+                <button type="button" class="btn-select-teacher btn-select-pancasila" data-teacher="pancasila"
+                  id="btn-select-pancasila">
+                  Masuk Kelas Kak Codi
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -667,13 +645,7 @@
         <div class="sidebar-brand-box" id="sidebar-brand-toggle" role="button" tabindex="0"
           title="Buka atau tutup riwayat obrolan">
           <div class="sidebar-brand-icon">
-            <svg viewBox="0 0 512 512" fill="none" width="22" height="22" aria-hidden="true">
-              <circle cx="256" cy="256" r="256" fill="#1E1742" />
-              <rect x="112" y="150" width="288" height="236" rx="98" fill="#6C4CF1" />
-              <ellipse cx="206" cy="254" rx="18" ry="24" fill="#7DF9FF" />
-              <ellipse cx="306" cy="254" rx="18" ry="24" fill="#7DF9FF" />
-              <circle cx="256" cy="90" r="18" fill="#C9B8FF" />
-            </svg>
+            <img src="/icons/icon.svg" alt="Codi AI Mascot" width="22" height="22" class="sidebar-mascot-img">
           </div>
           <span class="sidebar-brand-title">Riwayat Belajar</span>
         </div>
@@ -772,6 +744,15 @@
               <path d="M10 15a2 2 0 0 0 4 0" />
             </svg>
             <span>Bu Codi</span>
+          </button>
+          <button type="button" class="filter-tab-pill" data-filter="pancasila" role="tab"
+            aria-selected="false" title="Ganti asisten ke Kak Codi (Pendidikan Pancasila & PKn SD)">
+            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"
+              class="filter-tab-icon teacher-icon-star" aria-hidden="true">
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+            </svg>
+            <span>Kak Codi</span>
           </button>
         </div>
 
@@ -912,22 +893,7 @@
             <div class="workspace-3d-viewport" id="workspace-3d-canvas-container"></div>
             <!-- Fallback avatar in case WebGL is disabled or initial loading -->
             <div class="workspace-codi-avatar-fallback" id="workspace-avatar-box" aria-hidden="true">
-              <svg viewBox="0 0 512 512" fill="none" width="100%" height="100%">
-                <circle cx="256" cy="256" r="256" fill="#1E1742" />
-                <rect x="94" y="235" width="26" height="65" rx="13" fill="#4B2EC7" />
-                <rect x="392" y="235" width="26" height="65" rx="13" fill="#4B2EC7" />
-                <rect x="112" y="150" width="288" height="236" rx="98" fill="#6C4CF1" />
-                <rect x="144" y="196" width="224" height="136" rx="58" fill="#07060D" />
-                <ellipse cx="206" cy="254" rx="18" ry="24" fill="#7DF9FF" />
-                <ellipse cx="203" cy="247" rx="6" ry="8" fill="#FFFFFF" />
-                <ellipse cx="306" cy="254" rx="18" ry="24" fill="#7DF9FF" />
-                <ellipse cx="303" cy="247" rx="6" ry="8" fill="#FFFFFF" />
-                <path d="M238 292 Q256 304 274 292" stroke="#C9B8FF" stroke-width="5" stroke-linecap="round" />
-                <ellipse cx="176" cy="276" rx="12" ry="6" fill="#FF8EC7" opacity="0.6" />
-                <ellipse cx="336" cy="276" rx="12" ry="6" fill="#FF8EC7" opacity="0.6" />
-                <path d="M256 150 L256 100" stroke="#8E70FF" stroke-width="10" stroke-linecap="round" />
-                <circle cx="256" cy="90" r="18" fill="#C9B8FF" />
-              </svg>
+              <img src="/img/mascot-avatar-fur.png" alt="Codi AI Mascot" style="width: 100%; height: 100%; object-fit: cover; border-radius: inherit; display: block;">
             </div>
           </div>
 
@@ -1155,6 +1121,7 @@
 
   <!-- Scripts: Defer loaded, removed 443KB unused lucide vendor library -->
   <script defer src="/js/vendor/three.min.js"></script>
+  <script defer src="/js/vendor/GLTFLoader.js"></script>
   <script defer src="/js/codi-3d.js"></script>
   <script defer src="/js/ai-teacher.js"></script>
   <script defer src="/js/speech.js"></script>

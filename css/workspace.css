@@ -349,6 +349,10 @@
   border-color: rgba(52, 211, 153, 0.4);
 }
 
+.teacher-card-pancasila:hover {
+  border-color: rgba(245, 158, 11, 0.45);
+}
+
 .teacher-card-top {
   display: flex;
   align-items: center;
@@ -377,6 +381,12 @@
   color: #34D399;
   border-color: rgba(52, 211, 153, 0.25);
   background: rgba(52, 211, 153, 0.06);
+}
+
+.teacher-icon-pancasila {
+  color: #F59E0B;
+  border-color: rgba(245, 158, 11, 0.28);
+  background: rgba(245, 158, 11, 0.08);
 }
 
 .teacher-grade-label {
@@ -409,6 +419,10 @@
 
 .teacher-card-general .teacher-card-subject {
   color: #34D399;
+}
+
+.teacher-card-pancasila .teacher-card-subject {
+  color: #F59E0B;
 }
 
 .teacher-card-bio {
@@ -727,6 +741,16 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  overflow: hidden;
+}
+
+.sidebar-brand-icon svg,
+.sidebar-brand-icon img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  display: block;
+  object-fit: cover;
 }
 
 .sidebar-brand-title {
@@ -805,12 +829,18 @@
 /* Teacher Switcher & History Filter Tabs */
 .sidebar-filter-tabs {
   display: flex;
-  gap: 6px;
-  padding: 4px 14px 10px 14px;
+  gap: 5px;
+  padding: 4px 12px 10px 12px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.sidebar-filter-tabs::-webkit-scrollbar {
+  display: none;
 }
 
 .filter-tab-pill {
-  flex: 1;
+  flex: 1 0 auto;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1005,6 +1035,11 @@ input.sidebar-search-input:focus-visible {
 .history-teacher-badge.is-general {
   background: rgba(16, 185, 129, 0.2);
   color: #6EE7B7;
+}
+
+.history-teacher-badge.is-pancasila {
+  background: rgba(245, 158, 11, 0.2);
+  color: #FBBF24;
 }
 
 .btn-delete-session {
@@ -1438,6 +1473,12 @@ html.theme-light .theme-icon-moon {
   color: #6EE7B7;
   background: rgba(16, 185, 129, 0.2);
   border-color: rgba(52, 211, 153, 0.3);
+}
+
+.mascot-role-pill.is-pancasila {
+  color: #FBBF24;
+  background: rgba(245, 158, 11, 0.2);
+  border-color: rgba(245, 158, 11, 0.35);
 }
 
 /* Audio Speech Waveform Indicator */
@@ -3840,6 +3881,11 @@ html.theme-light .teacher-card-general:hover {
   border-color: #34D399 !important;
 }
 
+html[data-theme="light"] .teacher-card-pancasila:hover,
+html.theme-light .teacher-card-pancasila:hover {
+  border-color: #D97706 !important;
+}
+
 html[data-theme="light"] .teacher-card-name,
 html.theme-light .teacher-card-name {
   color: #0F172A !important;
@@ -3854,6 +3900,12 @@ html.theme-light .teacher-card-math .teacher-card-subject {
 html[data-theme="light"] .teacher-card-general .teacher-card-subject,
 html.theme-light .teacher-card-general .teacher-card-subject {
   color: #059669 !important;
+  font-weight: 700 !important;
+}
+
+html[data-theme="light"] .teacher-card-pancasila .teacher-card-subject,
+html.theme-light .teacher-card-pancasila .teacher-card-subject {
+  color: #D97706 !important;
   font-weight: 700 !important;
 }
 
@@ -3882,6 +3934,26 @@ html.theme-light .teacher-icon-general {
   background: #ECFDF5 !important;
   border: 1px solid #A7F3D0 !important;
   color: #059669 !important;
+}
+
+html[data-theme="light"] .teacher-icon-pancasila,
+html.theme-light .teacher-icon-pancasila {
+  background: #FFFBEB !important;
+  border: 1px solid #FDE68A !important;
+  color: #D97706 !important;
+}
+
+html[data-theme="light"] .history-teacher-badge.is-pancasila,
+html.theme-light .history-teacher-badge.is-pancasila {
+  background: #FEF3C7 !important;
+  color: #B45309 !important;
+}
+
+html[data-theme="light"] .mascot-role-pill.is-pancasila,
+html.theme-light .mascot-role-pill.is-pancasila {
+  background: #FFFBEB !important;
+  border: 1px solid #FDE68A !important;
+  color: #B45309 !important;
 }
 
 html[data-theme="light"] .teacher-card-bio,

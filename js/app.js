@@ -354,7 +354,7 @@ document.addEventListener('DOMContentLoaded', () => {
         currentUser = JSON.parse(storedUser);
       }
       const storedTeacher = localStorage.getItem('codi_selected_teacher');
-      if (storedTeacher && ['math', 'general'].includes(storedTeacher)) {
+      if (storedTeacher && ['math', 'general', 'pancasila'].includes(storedTeacher)) {
         currentTeacher = storedTeacher;
       }
       const storedSessions = localStorage.getItem('codi_chat_sessions');
@@ -558,6 +558,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // 7. Teacher Selection & Workspace Navigation
   const btnSelectMath = document.getElementById('btn-select-math');
   const btnSelectGeneral = document.getElementById('btn-select-general');
+  const btnSelectPancasila = document.getElementById('btn-select-pancasila');
   const btnBackToTeacherSelect = document.getElementById('btn-back-to-teacher-select');
   const activeTeacherIndicator = document.getElementById('active-teacher-indicator');
 
@@ -594,16 +595,21 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     if (mascotActiveRole && profile) {
       mascotActiveRole.textContent = profile.title;
+      mascotActiveRole.classList.remove('is-general', 'is-pancasila');
       if (teacherId === 'general') {
         mascotActiveRole.classList.add('is-general');
-      } else {
-        mascotActiveRole.classList.remove('is-general');
+      } else if (teacherId === 'pancasila') {
+        mascotActiveRole.classList.add('is-pancasila');
       }
     }
     if (mascotPedagogyHint) {
-      mascotPedagogyHint.textContent = teacherId === 'math'
-        ? 'Tanya soal operasi hitung, pecahan, atau rumus matematika seru hari ini!'
-        : 'Tanya rahasia sains alam, luar angkasa, atau sejarah seru hari ini!';
+      if (teacherId === 'math') {
+        mascotPedagogyHint.textContent = 'Tanya soal operasi hitung, pecahan, atau rumus matematika seru hari ini!';
+      } else if (teacherId === 'pancasila') {
+        mascotPedagogyHint.textContent = 'Tanya makna 5 sila Pancasila, lambang Garuda, hak & kewajiban anak, atau gotong royong!';
+      } else {
+        mascotPedagogyHint.textContent = 'Tanya rahasia sains alam, luar angkasa, atau sejarah seru hari ini!';
+      }
     }
 
     if (window.setCodiTeacherTheme) {
@@ -621,7 +627,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // Find latest session for this teacher, or create a fresh one
     let targetSession = chatSessions.find((s) => s.teacherId === teacherId);
     if (!targetSession) {
-      const defaultTitle = teacherId === 'math' ? 'Latihan Berhitung Seru' : 'Eksplorasi Sains & Flora Fauna';
+      const defaultTitle = teacherId === 'math'
+        ? 'Latihan Berhitung Seru'
+        : teacherId === 'pancasila'
+        ? 'Pendidikan Pancasila & Nilai Luhur'
+        : 'Eksplorasi Sains & Flora Fauna';
       targetSession = createDefaultSession(teacherId, defaultTitle);
       chatSessions.unshift(targetSession);
       saveChatSessions();
@@ -659,6 +669,10 @@ document.addEventListener('DOMContentLoaded', () => {
     btnSelectGeneral.addEventListener('click', () => enterTeacherWorkspace('general'));
   }
 
+  if (btnSelectPancasila) {
+    btnSelectPancasila.addEventListener('click', () => enterTeacherWorkspace('pancasila'));
+  }
+
   if (btnBackToTeacherSelect) {
     btnBackToTeacherSelect.addEventListener('click', () => {
       stopCurrentMessageAudio();
@@ -666,10 +680,15 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  function getNextTeacher(teacherId) {
+    if (teacherId === 'math') return 'general';
+    if (teacherId === 'general') return 'pancasila';
+    return 'math';
+  }
+
   if (activeTeacherIndicator) {
     activeTeacherIndicator.addEventListener('click', () => {
-      const nextTeacher = currentTeacher === 'math' ? 'general' : 'math';
-      enterTeacherWorkspace(nextTeacher);
+      enterTeacherWorkspace(getNextTeacher(currentTeacher));
     });
   }
 
@@ -755,8 +774,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   if (btnRailTeacher) {
     btnRailTeacher.addEventListener('click', () => {
-      const nextTeacher = currentTeacher === 'math' ? 'general' : 'math';
-      enterTeacherWorkspace(nextTeacher);
+      enterTeacherWorkspace(getNextTeacher(currentTeacher));
     });
   }
   if (sidebarBackdrop) {
@@ -840,11 +858,15 @@ document.addEventListener('DOMContentLoaded', () => {
     pill.addEventListener('click', () => {
       const filter = pill.getAttribute('data-filter') || 'all';
 
-      if (filter === 'math' || filter === 'general') {
+      if (filter === 'math' || filter === 'general' || filter === 'pancasila') {
         currentTeacherFilter = filter;
         syncSidebarTeacherPills();
         enterTeacherWorkspace(filter);
-        const name = filter === 'math' ? 'Pak Codi (Matematika)' : 'Bu Codi (IPA & Umum)';
+        const name = filter === 'math'
+          ? 'Pak Codi (Matematika)'
+          : filter === 'pancasila'
+          ? 'Kak Codi (Pendidikan Pancasila)'
+          : 'Bu Codi (IPA & Umum)';
         showToast(`Asisten belajar aktif: ${name}`);
       } else {
         currentTeacherFilter = 'all';
@@ -1030,7 +1052,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="history-item-left">
             <span class="history-item-title">${escapeHtml(session.title)}</span>
             <div class="history-item-meta">
-              <span class="history-teacher-badge ${session.teacherId === 'general' ? 'is-general' : ''}">${teacherName}</span>
+              <span class="history-teacher-badge ${session.teacherId === 'general' ? 'is-general' : session.teacherId === 'pancasila' ? 'is-pancasila' : ''}">${teacherName}</span>
               <span>${timeStr}</span>
             </div>
           </div>
