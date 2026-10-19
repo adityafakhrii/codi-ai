@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "edgeone-makers-mcp-server": {
+      "command": "node",
+      "args": ["d:/Projects/guru-ai/node_modules/@edgeone/makers-mcp/dist/index.js"]
+    }
+  }
+}

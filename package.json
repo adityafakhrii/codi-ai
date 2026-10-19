@@ -1,0 +1,23 @@
+{
+  "name": "codi-ai",
+  "version": "1.0.0",
+  "description": "Codi AI: Asisten Guru Virtual (Chat & Speak) untuk Siswa SD Indonesia",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": [
+    "ai",
+    "education",
+    "k-12",
+    "indonesia",
+    "threejs",
+    "pwa"
+  ],
+  "author": "Codi AI Engineering Team",
+  "license": "UNLICENSED",
+  "devDependencies": {
+    "@edgeone/makers-mcp": "^0.0.4"
+  }
+}

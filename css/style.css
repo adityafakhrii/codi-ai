@@ -1,0 +1,1321 @@
+/* ==========================================================================
+   Codi AI - Design System & Stylesheet (Mobile-First & PWA)
+   Reference: https://www.agibot.sh/ (Dark-mode precision, pill geometry, violet accent)
+   Hero Headline: Strictly 1 Line
+   Logo: Perfectly Circular
+   Footer: Exact 1:1 Agibot Horizon Glow & Multi-Gradient Letters
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   1. Design Tokens & Root Variables
+   -------------------------------------------------------------------------- */
+:root {
+  /* Colors */
+  --bg-base: #000000;
+  --bg-surface: #0E0D14;
+  --bg-surface-elevated: #161422;
+  
+  --accent-violet: #6C4CF1;
+  --accent-violet-hover: #7D5FFF;
+  --accent-violet-glow: rgba(108, 76, 241, 0.4);
+  --accent-violet-subtle: rgba(108, 76, 241, 0.12);
+  --accent-lavender: #C9B8FF;
+  --accent-green: #34D399;
+
+  --text-primary: #FFFFFF;
+  --text-muted: #9A9AA2;
+  --text-dimmed: #60606A;
+
+  --border-subtle: rgba(255, 255, 255, 0.12);
+  --border-hairline: rgba(255, 255, 255, 0.08);
+
+  /* Typography */
+  --font-sans: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Space Mono', SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+  /* Sizing & Radii */
+  --radius-pill: 9999px;
+  --radius-card: 20px;
+  --radius-card-sm: 16px;
+  --radius-badge: 12px;
+  --radius-circle: 50%;
+
+  /* Mobile Ergonomics & Viewport */
+  --min-touch-target: 48px;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 16px);
+  --container-max: 1140px;
+}
+
+/* --------------------------------------------------------------------------
+/* --------------------------------------------------------------------------
+   2. Reset, Universal Custom Scrollbars & Base Styles
+   -------------------------------------------------------------------------- */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* Universal Custom Scrollbar for WebKit & Chromium (Chrome, Edge, Safari, Opera) */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(108, 76, 241, 0.45);
+  border-radius: 9999px;
+  border: 1px solid transparent;
+  transition: background 0.2s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(142, 112, 255, 0.75);
+}
+
+::-webkit-scrollbar-thumb:active {
+  background: rgba(167, 139, 250, 0.95);
+}
+
+::-webkit-scrollbar-button {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Fallback for Firefox and standards-based engines without ::-webkit-scrollbar */
+@supports not selector(::-webkit-scrollbar) {
+  *, *::before, *::after {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(108, 76, 241, 0.45) transparent;
+  }
+}
+
+/* Custom Form Inputs (Strictly Crafted, WCAG AA Contrast - Excludes dock-input-field, sidebar-search-input, and pill-input-field) */
+input[type="text"]:not(.dock-input-field):not(.sidebar-search-input):not(.pill-input-field),
+input[type="search"]:not(.dock-input-field):not(.sidebar-search-input):not(.pill-input-field),
+input[type="email"]:not(.pill-input-field),
+input[type="date"],
+input[type="datetime-local"],
+input[type="time"],
+select,
+textarea {
+  font-family: inherit;
+  color: #FFFFFF;
+  background-color: rgba(26, 20, 56, 0.6);
+  border: 1px solid rgba(108, 76, 241, 0.35);
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-size: 0.90rem;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+
+input[type="text"]:not(.dock-input-field):not(.sidebar-search-input):not(.pill-input-field):focus,
+input[type="search"]:not(.dock-input-field):not(.sidebar-search-input):not(.pill-input-field):focus,
+input[type="email"]:not(.pill-input-field):focus,
+input[type="date"]:focus,
+input[type="datetime-local"]:focus,
+input[type="time"]:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  border-color: rgba(142, 112, 255, 0.85);
+  box-shadow: 0 0 0 3px rgba(108, 76, 241, 0.25);
+  background-color: rgba(26, 20, 56, 0.85);
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="datetime-local"]::-webkit-calendar-picker-indicator,
+input[type="time"]::-webkit-calendar-picker-indicator {
+  filter: invert(0.8) sepia(1) saturate(4) hue-rotate(220deg);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  transition: transform 0.15s ease, filter 0.15s ease;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator:hover,
+input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover,
+input[type="time"]::-webkit-calendar-picker-indicator:hover {
+  transform: scale(1.15);
+  filter: invert(1) hue-rotate(230deg);
+}
+
+input[type="search"]::-webkit-search-cancel-button {
+  filter: invert(0.8);
+  cursor: pointer;
+}
+
+html {
+  font-size: 16px;
+  scroll-behavior: smooth;
+  background-color: var(--bg-base);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  min-height: 100vh;
+  min-height: 100dvh;
+  background-color: var(--bg-base);
+  background-image: radial-gradient(900px 520px at 50% -140px, rgba(108, 76, 241, 0.12), transparent 70%);
+  background-repeat: no-repeat;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+  transition: color 0.15s ease, opacity 0.15s ease;
+}
+
+button, input {
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+  border: none;
+  background: none;
+  outline: none;
+}
+
+button {
+  cursor: pointer;
+  user-select: none;
+}
+
+img, svg {
+  display: block;
+}
+
+/* Accessibility Focus Ring (WCAG 2.4.7 - Excludes nested dock-input-field, sidebar-search-input, and pill-input-field) */
+:focus-visible:not(.dock-input-field):not(.sidebar-search-input):not(.pill-input-field):not(#waitlist-input):not(#waitlist-email) {
+  outline: 2px solid var(--accent-violet) !important;
+  outline-offset: 3px !important;
+  border-radius: inherit;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* --------------------------------------------------------------------------
+   3. Layout Container
+   -------------------------------------------------------------------------- */
+.container {
+  width: 100%;
+  max-width: var(--container-max);
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 24px;
+  padding-right: 24px;
+}
+
+/* --------------------------------------------------------------------------
+   4. Header Component (Slim Top Bar with Circular Mascot Logo)
+   -------------------------------------------------------------------------- */
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background-color: transparent;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: none; /* No line under navbar */
+  padding-top: var(--safe-top);
+}
+
+.header-inner {
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.brand-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+}
+
+/* Circular Logo */
+.brand-icon-wrapper {
+  width: 32px;
+  height: 32px;
+  border-radius: 50% !important; /* Circular Mascot Logo */
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  box-shadow: 0 0 14px var(--accent-violet-glow);
+  flex-shrink: 0;
+}
+
+.brand-icon-wrapper svg {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  display: block;
+}
+
+.brand-wordmark {
+  font-size: 1.05rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.nav-link {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  transition: color 0.15s ease;
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.nav-link:hover {
+  color: var(--text-primary);
+}
+
+.btn-pwa-install {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 40px;
+  min-height: 40px;
+  padding: 0 16px;
+  border-radius: var(--radius-pill);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-sizing: border-box;
+  background: rgba(108, 76, 241, 0.16);
+  border: 1px solid rgba(142, 112, 255, 0.35);
+  color: #C9B8FF;
+  transition: all 0.2s ease;
+  line-height: 1;
+}
+
+.btn-pwa-install:hover {
+  background: rgba(108, 76, 241, 0.28);
+  border-color: rgba(142, 112, 255, 0.55);
+  color: #FFFFFF;
+  transform: translateY(-1px);
+}
+
+.btn-header-login {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 40px;
+  min-height: 40px;
+  padding: 0 18px;
+  background-color: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-pill);
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+  line-height: 1;
+}
+
+#mobile-login-trigger {
+  display: none !important;
+}
+
+.btn-header-login:hover {
+  background-color: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.25);
+  transform: translateY(-1px);
+}
+
+/* --------------------------------------------------------------------------
+   5. Hero Section (Centred Single Column, Strictly 1-Line Headline)
+   -------------------------------------------------------------------------- */
+.hero-section {
+  position: relative;
+  min-height: calc(100svh - 60px);
+  padding-top: clamp(36px, 6vh, 64px);
+  padding-bottom: 0;
+  text-align: center;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.hero-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+  z-index: 10;
+  width: 100%;
+  max-width: 1200px;
+  margin-inline: auto;
+  flex: 1;
+}
+
+/* Headline STRICTLY 1 Line */
+.hero-headline {
+  font-size: clamp(1.4rem, 4.3vw, 3.8rem);
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.04em;
+  color: var(--text-primary);
+  width: 100%;
+  max-width: 100%;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap !important;
+  flex-wrap: nowrap !important;
+  overflow: visible;
+}
+
+.hero-title-text {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap !important;
+  flex-wrap: nowrap !important;
+}
+
+/* Circular Inline Icon */
+.hero-inline-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
+  width: clamp(28px, 4.2vw, 54px);
+  height: clamp(28px, 4.2vw, 54px);
+  margin: 0 clamp(6px, 1.2vw, 14px);
+  border-radius: 50% !important; /* Circular Mascot Logo */
+  background: #1E1742;
+  border: 1.5px solid rgba(108, 76, 241, 0.6);
+  box-shadow: 0 0 18px var(--accent-violet-glow);
+  transform: translateY(-2px);
+  overflow: hidden;
+  flex-shrink: 0;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.hero-inline-icon:hover {
+  transform: translateY(-4px) scale(1.08);
+}
+
+.hero-inline-icon svg {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  display: block;
+}
+
+.hero-subheadline {
+  font-size: clamp(0.92rem, 1.6vw, 1.12rem);
+  color: var(--text-muted);
+  line-height: 1.55;
+  max-width: 620px;
+  margin-bottom: 22px;
+  font-weight: 400;
+}
+
+/* Primary Conversion Unit: Pill Email Input */
+.conversion-unit {
+  width: 100%;
+  max-width: 480px;
+  margin-bottom: 20px;
+}
+
+.pill-input-form {
+  position: relative;
+  display: flex;
+  align-items: center;
+  background: rgba(22, 17, 48, 0.75);
+  border: 1px solid rgba(108, 76, 241, 0.35);
+  border-radius: 9999px;
+  padding: 5px 6px 5px 22px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.pill-input-form:focus-within {
+  border-color: #8E70FF;
+  box-shadow: 0 0 0 3px rgba(108, 76, 241, 0.28);
+  background: rgba(26, 20, 56, 0.95);
+}
+
+.pill-input-field,
+input.pill-input-field,
+#waitlist-input,
+#waitlist-email {
+  flex: 1;
+  min-width: 0;
+  height: 44px;
+  font-family: inherit;
+  font-size: 0.95rem;
+  color: #FFFFFF;
+  background: transparent !important;
+  border: none !important;
+  outline: none !important;
+  outline-offset: 0 !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  padding: 0 14px 0 0 !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  appearance: none !important;
+}
+
+.pill-input-field:focus,
+.pill-input-field:focus-visible,
+input.pill-input-field:focus,
+input.pill-input-field:focus-visible,
+#waitlist-input:focus,
+#waitlist-input:focus-visible,
+#waitlist-email:focus,
+#waitlist-email:focus-visible {
+  border: none !important;
+  outline: none !important;
+  outline-offset: 0 !important;
+  box-shadow: none !important;
+  background: transparent !important;
+}
+
+.pill-input-field::placeholder,
+#waitlist-input::placeholder,
+#waitlist-email::placeholder {
+  color: #94A3B8;
+  opacity: 1;
+}
+
+.pill-input-field::-webkit-contacts-auto-fill-button,
+.pill-input-field::-webkit-credentials-auto-fill-button,
+#waitlist-input::-webkit-contacts-auto-fill-button,
+#waitlist-input::-webkit-credentials-auto-fill-button {
+  visibility: hidden !important;
+  display: none !important;
+  pointer-events: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+
+
+.btn-pill-submit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 24px;
+  background-color: #FFFFFF;
+  color: #0A0A0C;
+  border: none;
+  border-radius: 9999px;
+  font-size: 0.90rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  transition: transform 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
+  min-height: 44px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.btn-pill-submit:hover {
+  background-color: #F3F0FF;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(255, 255, 255, 0.18);
+}
+
+.btn-pill-submit:active {
+  transform: translateY(0) scale(0.98);
+}
+
+
+/* Trust Row */
+.trust-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  margin-bottom: 16px;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.trust-row-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.green-dot-pulse {
+  position: relative;
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-circle);
+  background-color: var(--accent-green);
+  box-shadow: 0 0 8px var(--accent-green);
+  animation: pulseGreen 2.2s infinite ease-in-out;
+}
+
+@keyframes pulseGreen {
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.7); }
+  70% { transform: scale(1.1); box-shadow: 0 0 0 8px rgba(52, 211, 153, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(52, 211, 153, 0); }
+}
+
+.trust-number {
+  color: var(--accent-violet);
+  font-weight: 700;
+}
+
+.trust-dot-separator {
+  color: var(--text-dimmed);
+}
+
+.trust-reassurance {
+  color: var(--text-muted);
+}
+
+/* Third-party Badge Card & Mobile PWA Pill (Lucide Icons) */
+.badge-card-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.third-party-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background-color: #FFFFFF;
+  color: #111114;
+  padding: 6px 16px;
+  border-radius: var(--radius-badge);
+  font-size: 0.8rem;
+  font-weight: 700;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.4);
+  letter-spacing: -0.01em;
+}
+
+.badge-icon-svg {
+  flex-shrink: 0;
+}
+
+/* PWA Mobile Quick Install Pill */
+.pwa-install-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background-color: rgba(108, 76, 241, 0.15);
+  border: 1px solid rgba(108, 76, 241, 0.35);
+  color: var(--accent-lavender);
+  padding: 6px 14px;
+  border-radius: var(--radius-pill);
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  transition: all 0.2s ease;
+}
+
+.pwa-install-pill svg {
+  stroke: var(--accent-lavender);
+}
+
+.pwa-install-pill:hover {
+  background-color: rgba(108, 76, 241, 0.25);
+  border-color: var(--accent-violet);
+}
+
+/* --------------------------------------------------------------------------
+   6. Mascot Visual & Orbiting Badges (Hero Bottom, Cropped by Fold)
+   -------------------------------------------------------------------------- */
+.mascot-hero-stage {
+  position: relative;
+  width: 100%;
+  max-width: 820px;
+  height: 480px;
+  margin: auto auto 0 auto;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  overflow: visible;
+}
+
+/* Atmospheric Full-Width Radial Horizon Glow (Spans 100% viewport width without clipping) */
+.mascot-backdrop-glow {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  height: 520px;
+  background: radial-gradient(ellipse 110% 70% at 50% 100%, rgba(108, 76, 241, 0.44) 0%, rgba(108, 76, 241, 0.22) 36%, rgba(75, 46, 199, 0.08) 64%, transparent 100%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* 3D WebGL Canvas Viewport with Bottom Horizon Anchoring */
+.codi-3d-viewport {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  z-index: 5;
+  cursor: grab;
+}
+
+.codi-3d-viewport:active {
+  cursor: grabbing;
+}
+
+/* 4 Orbiting Badges (Lucide Line SVGs) */
+.orbit-badge {
+  position: absolute;
+  z-index: 12;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 18px;
+  background-color: rgba(17, 17, 20, 0.88);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-pill);
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  pointer-events: auto;
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.orbit-badge:hover {
+  border-color: rgba(108, 76, 241, 0.6);
+  transform: translateY(-4px) scale(1.04);
+}
+
+.orbit-badge-icon {
+  stroke: var(--accent-lavender);
+  flex-shrink: 0;
+}
+
+/* Coordinates in Arc */
+.badge-pos-1 {
+  top: 14%;
+  left: 4%;
+  animation: floatArc1 4.2s ease-in-out infinite;
+}
+
+.badge-pos-2 {
+  top: 8%;
+  right: 4%;
+  animation: floatArc2 4.8s ease-in-out infinite 0.5s;
+}
+
+.badge-pos-3 {
+  bottom: 26%;
+  left: 0%;
+  animation: floatArc3 4.5s ease-in-out infinite 1.0s;
+}
+
+.badge-pos-4 {
+  bottom: 22%;
+  right: 0%;
+  animation: floatArc4 5.0s ease-in-out infinite 1.5s;
+}
+
+@keyframes floatArc1 {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-8px); }
+}
+
+@keyframes floatArc2 {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes floatArc3 {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-7px); }
+}
+
+@keyframes floatArc4 {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-9px); }
+}
+
+/* Fold Crop Horizon */
+.fold-crop-overlay {
+  display: none;
+}
+
+/* --------------------------------------------------------------------------
+   7. FAQ Section (Seamless #000000 Infinite Canvas)
+   -------------------------------------------------------------------------- */
+.faq-section {
+  background-color: transparent;
+  padding-top: clamp(64px, 11vh, 120px);
+  padding-bottom: clamp(64px, 11vh, 120px);
+  border-top: none; /* Seamless pitch black background like Agibot */
+  position: relative;
+  z-index: 20;
+}
+
+.faq-layout {
+  display: grid;
+  grid-template-columns: 38% 62%;
+  gap: 48px;
+  align-items: flex-start;
+}
+
+.faq-left {
+  display: flex;
+  flex-direction: column;
+}
+
+.faq-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--accent-violet);
+  text-transform: uppercase;
+  margin-bottom: 16px;
+}
+
+.faq-headline {
+  font-size: clamp(1.8rem, 3.2vw, 2.6rem);
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.03em;
+  margin-bottom: 24px;
+}
+
+.faq-headline-line1 {
+  color: var(--text-primary);
+  display: block;
+}
+
+.faq-headline-line2 {
+  color: var(--text-dimmed);
+  display: block;
+}
+
+.faq-contact-subtext {
+  font-size: 0.95rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.faq-contact-email {
+  color: var(--text-primary);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  text-decoration-color: rgba(255, 255, 255, 0.3);
+  transition: text-decoration-color 0.2s ease, color 0.2s ease;
+}
+
+.faq-contact-email:hover {
+  color: var(--accent-lavender);
+  text-decoration-color: var(--accent-lavender);
+}
+
+/* Right Column: Accordion with Hairline Dividers */
+.faq-right {
+  display: flex;
+  flex-direction: column;
+}
+
+.faq-item {
+  border-bottom: 1px solid var(--border-hairline);
+}
+
+.faq-item:first-child {
+  border-top: 1px solid var(--border-hairline);
+}
+
+.faq-question-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24px 0;
+  text-align: left;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  gap: 16px;
+  min-height: var(--min-touch-target);
+  transition: color 0.15s ease;
+}
+
+.faq-question-btn:hover {
+  color: var(--accent-lavender);
+}
+
+/* Circular Toggle Icon Button (+ / -) */
+.faq-toggle-icon {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-circle);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border-subtle);
+  background-color: transparent;
+  color: var(--text-muted);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.faq-toggle-icon svg {
+  width: 14px;
+  height: 14px;
+  transition: transform 0.25s ease;
+}
+
+/* Open State Styling */
+.faq-item.is-open .faq-toggle-icon {
+  background-color: var(--accent-violet);
+  border-color: var(--accent-violet);
+  color: #FFFFFF;
+  box-shadow: 0 0 14px var(--accent-violet-glow);
+}
+
+.faq-item.is-open .faq-toggle-icon svg {
+  transform: rotate(90deg);
+}
+
+.faq-answer-content {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+  opacity: 0;
+}
+
+.faq-item.is-open .faq-answer-content {
+  max-height: 280px;
+  opacity: 1;
+}
+
+.faq-answer-inner {
+  padding-bottom: 24px;
+  font-size: 0.95rem;
+  line-height: 1.65;
+  color: var(--text-muted);
+}
+
+/* --------------------------------------------------------------------------
+   8. Footer & Signature Close (Exact 1:1 Match to Agibot styles.css)
+   -------------------------------------------------------------------------- */
+.foot {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  padding: clamp(64px, 10vh, 110px) 24px 0;
+  background:
+    radial-gradient(85% 65% at 50% 100%, rgba(124, 92, 255, 0.46) 0%, rgba(84, 52, 220, 0.20) 42%, rgba(20, 11, 51, 0.06) 66%, transparent 80%),
+    linear-gradient(to bottom, #000000 0%, #05030d 26%, #0f0726 60%, #1c0e48 88%, #281463 100%);
+  z-index: 20;
+}
+
+.foot::before {
+  /* hairline that fades out toward the edges */
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.15) 25%, rgba(255, 255, 255, 0.15) 75%, transparent);
+}
+
+.foot::after {
+  /* the horizon breathes, like the glow around the head */
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: radial-gradient(62% 52% at 50% 105%, rgba(160, 130, 255, 0.36) 0%, rgba(124, 92, 255, 0.14) 48%, transparent 74%);
+  animation: horizonGlow 6.4s ease-in-out infinite;
+}
+
+@keyframes horizonGlow {
+  0%, 100% { opacity: 0.85; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.06); }
+}
+
+.foot-row, .foot-base {
+  width: min(1120px, 100%);
+  margin-inline: auto;
+}
+
+.foot-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 28px 40px;
+}
+
+.foot-brand {
+  display: grid;
+  justify-items: start;
+  gap: 12px;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 1.125rem;
+  letter-spacing: -.02em;
+  color: var(--text-primary);
+}
+
+.footer-icon-wrapper {
+  width: 32px;
+  height: 32px;
+  border-radius: 50% !important; /* Circular Mascot Logo */
+  overflow: hidden;
+  background: #1E1742;
+  border: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.footer-icon-wrapper svg {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  display: block;
+}
+
+.foot-tag {
+  max-width: 32ch;
+  color: var(--text-muted);
+  font-size: .95rem;
+  line-height: 1.5;
+}
+
+.foot-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 28px;
+  margin-top: -6px;
+}
+
+.foot-base {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 24px;
+  margin-top: clamp(36px, 6vh, 64px);
+  padding-top: 18px;
+  border-top: 1px solid var(--border-hairline);
+  font-family: var(--font-mono);
+  font-size: .75rem;
+  color: var(--text-muted);
+}
+
+.foot-link {
+  padding: 4px 0;
+  border: 0;
+  background: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-color: rgba(255, 255, 255, 0.2);
+  text-underline-offset: 3px;
+  transition: color .2s, text-decoration-color .2s;
+}
+
+.foot-link:hover {
+  color: var(--text-primary);
+  text-decoration-color: currentColor;
+}
+
+/* Exact Agibot Signature Close Wordmark */
+.foot-word {
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  margin: clamp(24px, 4vw, 56px) 0 -0.07em; /* the capitals sink a little into the horizon */
+  font-family: var(--font-sans);
+  font-weight: 800;
+  font-size: clamp(4.5rem, 20vw, 19rem);
+  line-height: .82;
+  letter-spacing: -.035em;
+  user-select: none;
+  pointer-events: none;
+}
+
+/* Each letter carries its own gradient, exactly as Agibot does */
+.foot-word span {
+  display: inline-block;
+  padding: .14em .05em;
+  margin: -.14em -.05em;
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.95) 20%, rgba(210, 198, 255, 0.65) 54%, rgba(150, 122, 255, 0.18) 86%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.foot-word-gap {
+  display: inline-block;
+  width: clamp(14px, 3.2vw, 40px);
+}
+
+/* --------------------------------------------------------------------------
+   9. Notification Toast (Waitlist Success / PWA feedback)
+   -------------------------------------------------------------------------- */
+.toast-notice {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(100px);
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 24px;
+  background-color: #111114;
+  border: 1px solid var(--accent-violet);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8), 0 0 20px var(--accent-violet-glow);
+  border-radius: var(--radius-pill);
+  color: #FFFFFF;
+  font-size: 0.9rem;
+  font-weight: 600;
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.toast-notice.show {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* --------------------------------------------------------------------------
+   10. Responsive Media Queries (Mobile-First Polish)
+   -------------------------------------------------------------------------- */
+@media (max-width: 1024px) {
+  /* Unclutter mascot: hide floating chips on mobile & tablet so character is pure & prominent like Agibot */
+  .orbit-badge {
+    display: none !important;
+  }
+
+  .btn-header-login {
+    display: none !important; /* Minimal header matching Agibot iPhone reference: only Kontak on right */
+  }
+}
+
+@media (max-width: 768px) {
+  .site-header .container {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+
+  .site-header {
+    border-bottom: none !important;
+  }
+
+  .header-inner {
+    height: 52px;
+  }
+
+  .nav-link {
+    font-size: 0.95rem;
+    font-weight: 550;
+    color: #FFFFFF;
+    min-height: 40px;
+  }
+
+  .hero-section {
+    min-height: calc(100svh - 52px);
+    padding-top: clamp(32px, 6vh, 48px);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+
+  .hero-headline {
+    font-size: clamp(1.42rem, 6.2vw, 2.35rem);
+    margin-bottom: 12px;
+    white-space: nowrap !important;
+    flex-wrap: nowrap !important;
+  }
+
+  .hero-inline-icon {
+    width: clamp(26px, 5.8vw, 36px);
+    height: clamp(26px, 5.8vw, 36px);
+    margin: 0 clamp(4px, 1.2vw, 8px);
+  }
+
+  .hero-subheadline {
+    font-size: 0.88rem;
+    line-height: 1.55;
+    max-width: 325px;
+    margin-bottom: 18px;
+    padding: 0 4px;
+    color: var(--text-muted);
+  }
+
+  .conversion-unit {
+    max-width: 360px;
+    margin-bottom: 14px;
+  }
+
+  .pill-input-form {
+    padding: 4px 4px 4px 16px;
+    min-height: 50px;
+  }
+
+  .pill-input-field {
+    font-size: 0.82rem;
+  }
+
+  .btn-pill-submit {
+    padding: 10px 16px;
+    font-size: 0.80rem;
+  }
+
+  .trust-row {
+    flex-direction: column;
+    gap: 3px;
+    font-size: 0.78rem;
+    margin-bottom: 12px;
+    text-align: center;
+  }
+
+  .trust-dot-separator {
+    display: none;
+  }
+
+  .mascot-hero-stage {
+    width: 100vw;
+    max-width: 100vw;
+    margin-left: calc(-50vw + 50%);
+    margin-right: calc(-50vw + 50%);
+    height: clamp(340px, 48vh, 440px);
+    margin-top: auto;
+    margin-bottom: 0;
+    overflow: hidden;
+  }
+
+  .mascot-backdrop-glow {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    height: 380px;
+    background: radial-gradient(ellipse 130% 75% at 50% 100%, rgba(124, 92, 255, 0.48) 0%, rgba(108, 76, 241, 0.24) 40%, rgba(75, 46, 199, 0.08) 70%, transparent 100%);
+  }
+
+  /* FAQ switches to single column */
+  .faq-section {
+    padding-top: 64px;
+    padding-bottom: 64px;
+  }
+
+  .faq-layout {
+    grid-template-columns: 1fr;
+    gap: 36px;
+  }
+
+  .faq-question-btn {
+    font-size: 0.98rem;
+    padding: 20px 0;
+  }
+
+  /* Footer stack */
+  .foot-row {
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  .foot-nav {
+    flex-wrap: wrap;
+    gap: 16px 24px;
+  }
+
+  .foot-base {
+    margin-top: 36px;
+    flex-direction: column;
+    gap: 12px;
+    text-align: center;
+  }
+
+  .foot-word {
+    font-size: clamp(3.2rem, 22vw, 8rem);
+  }
+}
+
+/* Reduced Motion Support (WCAG 2.3.3) */
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .green-dot-pulse {
+    animation: none !important;
+  }
+
+  .orbit-badge {
+    animation: none !important;
+  }
+  
+  .foot::after {
+    animation: none !important;
+  }
+}

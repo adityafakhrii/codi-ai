@@ -1,0 +1,21 @@
+{
+  "name": "Codi AI: Asisten Guru SD Indonesia",
+  "short_name": "Codi AI",
+  "description": "Asisten guru virtual ramah anak SD untuk Matematika dan Pengetahuan Umum berbasis suara dan teks.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0A0A0C",
+  "theme_color": "#0A0A0C",
+  "categories": ["education", "kids"],
+  "lang": "id",
+  "icons": [
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
