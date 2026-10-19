@@ -23,8 +23,7 @@ export async function onRequest(context) {
     configured: Boolean(apiKey && apiKey.length > 0),
     models: finalModels,
     activeModel: finalModels[0],
-    totalModels: finalModels.length,
-    baseUrl: baseUrl
+    totalModels: finalModels.length
   }), {
     status: 200,
     headers: {
@@ -32,6 +31,7 @@ export async function onRequest(context) {
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      'X-Content-Type-Options': 'nosniff',
       'Cache-Control': 'no-cache'
     }
   });

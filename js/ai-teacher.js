@@ -89,6 +89,15 @@
 
     // A. Pak Codi - Matematika
     if (teacherId === 'math') {
+      // 1. Deteksi jika anak bertanya tentang topik IPAS / Sains / Alam ke Pak Codi -> Arahkan ke Bu Codi
+      const isIpasQuestion = /\b(daun|fotosintesis|klorofil|hujan|awan|hewan|binatang|fauna|flora|tumbuhan|pohon|pahlawan|maluku|pattimura|planet|tata surya|matahari|bumi|antariksa|ekosistem|organ tubuh|jantung|paru|lambung|pencernaan|otot|tulang|kutub|gunung|laut|sungai|samudra|budaya|pancasila|indonesia|provinsi|sejarah|sains|ipas)\b/i.test(lower);
+      if (isIpasQuestion) {
+        return {
+          text: 'Wah, pertanyaan seru tentang sains dan alam ini adalah keahlian **Bu Codi** (Guru IPAS & Pengetahuan Umum SD)!\n\nYuk, tanyakan ke Bu Codi di ruang belajarnya ya agar adik mendapatkan penjelasan yang seru dan lengkap tentang topik ini! ✨',
+          followUp: 'Beralih ke Bu Codi untuk membahas topik sains ini ya!'
+        };
+      }
+
       if (isHomeworkRequest) {
         return {
           text: 'Halo adik hebat! Pak Codi di sini siap membimbing adik memahami **cara dan proses belajarnya**, bukan untuk mengerjakan tugas atau memberikan kunci jawaban instan.\n\nKalau adik memahami langkah-langkahnya, adik pasti bisa memecahkannya sendiri dengan bangga!\n\n1. Apa konsep atau soal yang sedang dipelajari?\n2. Bagian mana yang terasa paling menantang atau membingungkan?\n\nCeritakan ke Pak Codi, yuk kita bedah bareng-bareng langkah demi langkah!',
@@ -165,6 +174,15 @@
         }
       }
 
+      // 2. Deteksi jika pertanyaan di luar topik Matematika SD
+      const isMathTopic = /\b(hitung|kali|bagi|tambah|kurang|jumlah|selisih|pecahan|persen|desimal|persegi|segitiga|lingkaran|sudut|derajat|keliling|luas|volume|balok|kubus|prisma|tabung|kerucut|bilangan|angka|rumus|matematika|soal)\b/i.test(lower) || /\d+/.test(lower) || /[\+\-\*\/x×:]/.test(lower);
+      if (!isMathTopic) {
+        return {
+          text: 'Halo adik pintar! Pak Codi adalah guru khusus **Matematika SD**.\n\nPak Codi hanya bisa membantu adik belajar operasi hitung, pecahan, geometri bangun ruang, dan logika matematika seru lainnya.\n\nYuk, tanyakan materi matematika atau angka yang ingin kita pelajari bersama!',
+          followUp: 'Ketik soal hitungan atau konsep matematika yang ingin adik diskusikan ya!'
+        };
+      }
+
       // Default Socratic math response
       return {
         text: `Pertanyaan yang bagus sekali tentang matematika! Untuk menyelesaikannya, mari kita uraikan langkah demi langkah: pertama kita cari tahu apa yang diketahui di soal, lalu pilih cara hitungnya. Mau Pak Codi jelaskan contoh mudahnya?`,
@@ -172,8 +190,17 @@
       };
     }
 
-    // B. Bu Codi - Pengetahuan Umum SD
+    // B. Bu Codi - Pengetahuan Umum SD (IPAS)
     if (teacherId === 'general') {
+      // 1. Deteksi jika anak bertanya tentang Matematika ke Bu Codi -> Arahkan ke Pak Codi
+      const isMathQuestion = /\b(hitung|kali|bagi|tambah|kurang|jumlah|pecahan|persen|desimal|persegi|segitiga|luas segitiga|keliling|volume|balok|kubus|rumus luas|rumus hitung|matematika)\b/i.test(lower) || /\d+\s*[\+\-\*\/x×:]\s*\d+/.test(lower) || (/berapakah|berapa hasil|berapa/.test(lower) && /\d+/.test(lower));
+      if (isMathQuestion) {
+        return {
+          text: 'Wah, kalau soal hitung-hitungan, rumus, dan matematika yang seru, jagonya adalah **Pak Codi** (Guru Matematika Cerdas)!\n\nYuk, ajukan pertanyaan ini ke Pak Codi di ruang belajarnya ya, beliau siap membimbing adik menemukan caranya langkah demi langkah! 🎯',
+          followUp: 'Beralih ke Pak Codi untuk menghitung soal ini ya!'
+        };
+      }
+
       if (isHomeworkRequest) {
         return {
           text: 'Halo adik pintar! Bu Codi sangat senang melihat semangat belajarmu. Namun, Bu Codi hadir untuk memandu adik **memahami materi dan konsepnya**, bukan untuk membuatkan jawaban tugas atau esai PR secara langsung.\n\nDengan memahami konsepnya, adik akan jadi pelajar mandiri yang hebat!\n\n1. Apa topik tugas yang sedang adik pelajari?\n2. Pertanyaan apa yang paling membuat adik penasaran?\n\nAyo ceritakan, Bu Codi siap menemani adik memahaminya langkah demi langkah!',
@@ -203,6 +230,15 @@
         return {
           text: 'Pahlawan terkenal dari Maluku adalah Kapitan Pattimura (Thomas Matulessy)! Beliau memimpin perjuangan rakyat Maluku pada tahun 1817 melawan penjajah demi membela tanah air dan rakyatnya dengan gagah berani. Wajah beliau juga pernah diabadikan di uang kertas Rp1.000!',
           followUp: 'Pernah dengar juga pahlawan wanita dari Maluku bernama Christina Martha Tiahahu?'
+        };
+      }
+
+      // 2. Deteksi jika pertanyaan di luar topik IPAS & Sains SD
+      const isIpasTopic = /\b(daun|fotosintesis|klorofil|hujan|awan|hewan|fauna|flora|tumbuhan|pohon|pahlawan|maluku|pattimura|planet|tata surya|matahari|bumi|antariksa|ekosistem|organ|jantung|paru|siklus|wujud|benda|energi|listrik|magnet|alam|lingkungan|pancasila|budaya|provinsi|geografi|sejarah|sains|ipas|ipa|ips)\b/i.test(lower);
+      if (!isIpasTopic) {
+        return {
+          text: 'Halo adik pintar! Bu Codi adalah guru khusus **IPAS dan Pengetahuan Umum SD**.\n\nBu Codi menemani adik mempelajari keajaiban alam, sains, dunia tumbuhan dan hewan, serta kekayaan nusantara Indonesia.\n\nYuk, tanyakan hal-hal seru seputar sains, alam, atau pengetahuan umum SD!',
+          followUp: 'Ketik topik sains atau alam yang paling membuatmu penasaran ya!'
         };
       }
 
