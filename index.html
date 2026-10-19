@@ -47,6 +47,12 @@
     <link rel="stylesheet" href="/css/workspace.css">
   </noscript>
 
+  <!-- Preload Real 3D Mascot GLB and Three.js Engine Directly -->
+  <link rel="preload" as="fetch" href="/models/codi-mascot.glb?v=20261019_real" type="model/gltf-binary" crossorigin>
+  <link rel="preload" as="script" href="/js/vendor/three.min.js">
+  <link rel="preload" as="script" href="/js/vendor/GLTFLoader.js">
+  <link rel="preload" as="script" href="/js/codi-3d.js?v=20261019_scale1">
+
   <!-- Instant Session & Theme Detector: Bypasses landing page & theme flash -->
   <script>
     (function () {
@@ -260,10 +266,6 @@
             <!-- Interactive 3D WebGL Canvas Container -->
             <div class="codi-3d-viewport" id="codi-3d-canvas-container"
               title="Klik atau sentuh Codi untuk berinteraksi!">
-              <noscript>
-                <img src="/img/mascot-hero-fur.png" alt="Codi AI Mascot 3D"
-                  style="width: 100%; max-width: 580px; margin: 0 auto; display: block; object-fit: contain;">
-              </noscript>
             </div>
 
             <!-- Fold Crop Gradient -->
@@ -1133,7 +1135,7 @@
   <!-- Scripts: Defer loaded, removed 443KB unused lucide vendor library -->
   <script defer src="/js/vendor/three.min.js"></script>
   <script defer src="/js/vendor/GLTFLoader.js"></script>
-  <script defer src="/js/codi-3d.js?v=20261019_1558"></script>
+  <script defer src="/js/codi-3d.js?v=20261019_scale1"></script>
   <script defer src="/js/ai-teacher.js"></script>
   <script defer src="/js/speech.js"></script>
   <script defer src="/js/app.js?v=20261019_1635"></script>

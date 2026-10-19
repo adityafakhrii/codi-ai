@@ -76,9 +76,9 @@
         return {
           workspace: false,
           scale:      1.0,
-          cameraZ:    4.0,
-          glbScale:   1.88,
-          glbOffsetY: -0.88,
+          cameraZ:    4.2,
+          glbScale:   1.52,
+          glbOffsetY: -0.84,
           baseY:      0,
           headRotMulX: 0.14,
           headRotMulY: 0.22,
@@ -91,7 +91,7 @@
           workspace: false,
           scale:      1.0,
           cameraZ:    4.1,
-          glbScale:   1.76,
+          glbScale:   1.62,
           glbOffsetY: -0.82,
           baseY:      0,
           headRotMulX: 0.14,
@@ -475,26 +475,24 @@
         foot.scale.set(1.25, 0.52, 1.35);
         return foot;
       }
-      bodyGroup.add(buildFoot(-1));
-      bodyGroup.add(buildFoot(1));
-
-      // Start hidden so there is no 1-second procedural flash while GLB loads
+      // Procedural rig disabled: exclusively use the real GLB mascot model
       headGroup.visible = false;
       bodyGroup.visible = false;
     }
 
-    buildProceduralRig();
+    // Do NOT build or display procedural rig - user strictly wants the real 3D GLB model
+    // buildProceduralRig();
 
     // ── Attempt AI-Generated GLB Model Loading ──
     var glbPivot = null;
     if (typeof THREE.GLTFLoader !== 'undefined') {
       var gltfLoader = new THREE.GLTFLoader();
-      var glbPath = '/models/codi-mascot.glb?v=20261019_1';
+      var glbPath = '/models/codi-mascot.glb?v=20261019_real';
       gltfLoader.load(
         glbPath,
         function (gltf) {
           try {
-            console.log('[Codi3D] Successfully loaded AI-generated GLB mascot model from ' + glbPath);
+            console.log('[Codi3D] Successfully loaded real GLB mascot model from ' + glbPath);
             isGlbLoaded = true;
             glbScene = gltf.scene;
 
@@ -536,23 +534,19 @@
               }
             });
 
-            // Transition: ensure procedural rig remains hidden and show GLB model
+            // Mount real GLB model into scene
             headGroup.visible = false;
             bodyGroup.visible = false;
             owlRoot.add(glbPivot);
+            container.classList.add('is-ready');
           } catch (err) {
-            console.error('[Codi3D] Error configuring GLB mascot:', err);
-            headGroup.visible = true;
-            bodyGroup.visible = true;
+            console.error('[Codi3D] Error configuring real GLB mascot:', err);
           }
         },
         undefined,
         function (err) {
           console.error('[Codi3D] GLB load error from ' + glbPath + ':', err);
           isGlbLoaded = false;
-          // Fallback to procedural model only if GLB failed
-          headGroup.visible = true;
-          bodyGroup.visible = true;
         }
       );
     }
@@ -564,6 +558,7 @@
     var targetBodyRotY = 0;
     var bounceOffset   = 0;
     var bounceVelocity = 0;
+    var isFirstFrameRendered = false;
 
     // Pointer move handler (mouse & touch gaze tracking)
     function onPointerMove(clientX, clientY) {
