@@ -19,3 +19,5 @@ Thumbs.db
 .tef_dist/
 .tef_dist
   
+# Agents
+.agents
