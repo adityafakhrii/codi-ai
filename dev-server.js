@@ -66,7 +66,9 @@ const MIME_TYPES = {
   '.ttf': 'font/ttf',
   '.glb': 'model/gltf-binary',
   '.gltf': 'model/gltf+json',
-  '.bin': 'application/octet-stream'
+  '.bin': 'application/octet-stream',
+  '.txt': 'text/plain; charset=utf-8',
+  '.xml': 'application/xml; charset=utf-8'
 };
 
 // High-performance In-Memory Static File Compression Cache (server-cache-lru)
@@ -172,7 +174,7 @@ function isStaticPathAllowed(reqPath) {
   }
 
   // 3. Allowed root public assets
-  if (reqPath === '/index.html' || reqPath === '/sw.js' || reqPath === '/manifest.json' || reqPath === '/favicon.ico') {
+  if (reqPath === '/index.html' || reqPath === '/sw.js' || reqPath === '/manifest.json' || reqPath === '/favicon.ico' || reqPath === '/robots.txt' || reqPath === '/sitemap.xml') {
     return true;
   }
 

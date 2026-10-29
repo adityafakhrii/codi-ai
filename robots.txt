@@ -1,0 +1,8 @@
+# Codi AI Robots.txt
+User-agent: *
+Allow: /
+Disallow: /api/
+
+# Sitemaps
+Sitemap: https://codi.ai.id/sitemap.xml
+
