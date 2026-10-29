@@ -1391,6 +1391,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const RE_AMP = /&/g;
   const RE_LT = /</g;
   const RE_GT = />/g;
+  const RE_FLAG_EMOJIS = /(?:[\uD83C][\uDDE6-\uDDFF]){1,2}/g;
   const RE_EM_DASH = /—/g;
   const RE_NUM_LIST_MERGED1 = /:\s*(\d+\.\s+)/g;
   const RE_NUM_LIST_MERGED2 = /([^\n])\s+(\d+\.\s+\*\*)/g;
@@ -1417,6 +1418,9 @@ document.addEventListener('DOMContentLoaded', () => {
       .replace(RE_AMP, '&amp;')
       .replace(RE_LT, '&lt;')
       .replace(RE_GT, '&gt;');
+
+    // 2b. Bersihkan emoji bendera regional indicator yang rusak jadi huruf teks di Windows (misal bendera RI 🇮🇩 menjadi "ID")
+    text = text.replace(RE_FLAG_EMOJIS, '').replace(/\s+([.,?!])/g, '$1');
 
     // 3. Normalisasi tanda baca em dash panjang menjadi tanda hubung bersih
     text = text.replace(RE_EM_DASH, ' - ');
@@ -1702,18 +1706,274 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  function renderQuickChips() {
+  // Generator Saran Pertanyaan Kontekstual Dinamis (Dynamic Follow-up Suggestions)
+  function generateContextualSuggestions(session) {
+    if (!session) return [];
+    const teacherId = session.teacherId || currentTeacher || 'math';
+    const profile = window.CodiAI && window.CodiAI.TEACHER_PROFILES ? window.CodiAI.TEACHER_PROFILES[teacherId] : null;
+    const defaultPrompts = profile && profile.quickPrompts ? [...profile.quickPrompts] : [];
+
+    const userMsgs = (session.messages || []).filter(m => m.sender === 'user');
+    // Jika belum ada chat dari user (baru buka / greeting awal), tampilkan saran default awal
+    if (userMsgs.length === 0) {
+      return defaultPrompts;
+    }
+
+    const lastUserText = userMsgs[userMsgs.length - 1].text || '';
+    const aiMsgs = (session.messages || []).filter(m => m.sender === 'ai');
+    const lastAiText = aiMsgs.length > 0 ? aiMsgs[aiMsgs.length - 1].text || '' : '';
+    const ctx = (lastUserText + ' ' + lastAiText).toLowerCase();
+
+    // 1. Cek apakah respon AI menawarkan pilihan pertanyaan langsung
+    if (/\b(sekolah atau di rumah|rumah atau di sekolah)\b/i.test(lastAiText)) {
+      return [
+        'Ceritakan contoh di sekolah dong!',
+        'Bagaimana penerapannya kalau di rumah?',
+        'Mau pelajari materi yang lain!'
+      ];
+    }
+    if (/\b(tentang apa hari ini|materi apa yang ingin|mau mulai belajar apa)\b/i.test(lastAiText)) {
+      if (teacherId === 'math') {
+        return [
+          'Belajar operasi hitung perkalian',
+          'Cara mudah pecahan dan desimal',
+          'Rumus bangun datar dan ruang'
+        ];
+      }
+      if (teacherId === 'pancasila') {
+        return [
+          'Makna 5 Sila Pancasila',
+          'Arti lambang Garuda Pancasila',
+          'Contoh hak & kewajiban anak di sekolah'
+        ];
+      }
+      return [
+        'Rahasia tata surya & luar angkasa',
+        'Kenapa daun warnanya hijau?',
+        'Hewan langka khas nusantara'
+      ];
+    }
+
+    // 2. Berdasarkan subjek guru & topik percakapan terakhir
+    if (teacherId === 'pancasila') {
+      // Sila 1: Bintang, Ketuhanan, Agama, Ibadah, Doa
+      if (/\b(bintang|sila ke-1|sila 1|ketuhanan|ibadah|doa|agama|toleransi)\b/i.test(ctx)) {
+        return [
+          'Contoh pengamalan sila ke-1 di rumah',
+          'Bagaimana cara menghargai teman beda agama?',
+          'Apa arti lambang Bintang emas di perisai?',
+          'Lanjut bahas Sila ke-2 dong!'
+        ];
+      }
+      // Sila 2: Rantai, Kemanusiaan, Tolong, Menolong, Kasih, Teman
+      if (/\b(rantai|sila ke-2|sila 2|kemanusiaan|tolong|menolong|kasih|dijahili|berbagi)\b/i.test(ctx)) {
+        return [
+          'Contoh tolong-menolong di lingkungan sekolah',
+          'Apa arti gelang bulat & persegi pada lambang Rantai?',
+          'Bagaimana jika melihat teman sedang diejek?',
+          'Lanjut bahas Sila ke-3 dong!'
+        ];
+      }
+      // Sila 3: Pohon Beringin, Persatuan, Rukun, Gotong Royong, Suku, Nusantara
+      if (/\b(pohon beringin|beringin|sila ke-3|sila 3|persatuan|rukun|gotong royong|suku|nusantara)\b/i.test(ctx)) {
+        return [
+          'Contoh gotong royong membersihkan kelas',
+          'Apa makna akar gantung Pohon Beringin?',
+          'Mengapa kita harus rukun walau berbeda suku?',
+          'Lanjut bahas Sila ke-4 dong!'
+        ];
+      }
+      // Sila 4: Banteng, Musyawarah, Mufakat, Ketua Kelas, Berpendapat
+      if (/\b(banteng|kepala banteng|sila ke-4|sila 4|musyawarah|mufakat|ketua kelas|pendapat|suara)\b/i.test(ctx)) {
+        return [
+          'Bagaimana musyawarah memilih ketua kelas?',
+          'Mengapa lambang sila ke-4 Kepala Banteng?',
+          'Apa artinya musyawarah untuk mufakat?',
+          'Lanjut bahas Sila ke-5 dong!'
+        ];
+      }
+      // Sila 5: Padi Kapas, Keadilan, Hak, Berbagi, Hemat
+      if (/\b(padi dan kapas|padi|kapas|sila ke-5|sila 5|keadilan sosial|hemat|adil)\b/i.test(ctx)) {
+        return [
+          'Contoh bersikap adil kepada semua teman',
+          'Apa arti lambang Padi dan Kapas?',
+          'Apa bedanya hidup hemat dengan pelit?',
+          'Rangkum makna kelima sila Pancasila dong!'
+        ];
+      }
+      // Lambang Garuda Pancasila & Semboyan
+      if (/\b(garuda|sayap|ekor|pita|bhinneka|lambang negara|perisai)\b/i.test(ctx)) {
+        return [
+          'Berapa jumlah bulu sayap dan ekor Garuda?',
+          'Mengapa burung Garuda menoleh ke arah kanan?',
+          'Apa arti semboyan Bhinneka Tunggal Ika?',
+          'Apa saja 5 simbol di perisai dada Garuda?'
+        ];
+      }
+      // Hak & Kewajiban
+      if (/\b(hak|kewajiban|tanggung jawab|tugas anak|aturan sekolah)\b/i.test(ctx)) {
+        return [
+          'Sebutkan 3 hak anak di lingkungan rumah',
+          'Apa saja kewajiban anak saat di sekolah?',
+          'Mengapa kewajiban harus didahulukan dari hak?',
+          'Apa aturan kesopanan yang wajib dipatuhi?'
+        ];
+      }
+      // Budi Pekerti & Sopan Santun
+      if (/\b(sopan|santun|budi pekerti|karakter|maaf|tolong|terima kasih|salam)\b/i.test(ctx)) {
+        return [
+          'Kapan kita memakai kata tolong, maaf, dan terima kasih?',
+          'Bagaimana cara menunjukkan sopan santun ke guru?',
+          'Sikap yang baik saat mendengarkan orang tua',
+          'Tanya contoh gotong royong di sekolah'
+        ];
+      }
+      // Pertanyaan identitas guru
+      if (/\b(guru apa|siapa kamu|siapa anda|kak codi|namamu)\b/i.test(ctx)) {
+        return [
+          'Apa arti lambang Bintang di sila ke-1?',
+          'Mengapa semboyan kita Bhinneka Tunggal Ika?',
+          'Contoh gotong royong anak SD di sekolah',
+          'Apa beda hak dan kewajiban anak?'
+        ];
+      }
+      // Default dinamis Pancasila
+      return [
+        'Contoh pengamalan Pancasila sehari-hari',
+        'Apa arti semboyan Bhinneka Tunggal Ika?',
+        'Tanya hak dan kewajiban anak di sekolah',
+        'Ceritakan makna lambang Garuda Pancasila'
+      ];
+    }
+
+    if (teacherId === 'math') {
+      // Pecahan & Desimal
+      if (/\b(pecahan|pembilang|penyebut|desimal|persen|setengah|seperempat)\b/i.test(ctx)) {
+        return [
+          'Bagaimana cara menjumlahkan pecahan beda penyebut?',
+          'Cara mudah mengubah pecahan biasa ke desimal',
+          'Beri 1 contoh soal cerita pecahan yang seru!',
+          'Apa arti pembilang dan penyebut?'
+        ];
+      }
+      // Perkalian & Pembagian
+      if (/\b(perkalian|kali|pembagian|bagi|porogapit|bersusun|tabel perkalian)\b/i.test(ctx)) {
+        return [
+          'Trik cepat menghafal perkalian 9 dengan jari',
+          'Bagaimana langkah pembagian bersusun (porogapit)?',
+          'Coba berikan 1 soal tantangan perkalian!',
+          'Bagaimana perkalian angka ratusan?'
+        ];
+      }
+      // Bangun Datar / Geometri
+      if (/\b(bangun datar|persegi|panjang|segitiga|lingkaran|keliling|luas)\b/i.test(ctx)) {
+        return [
+          'Rumus keliling dan luas persegi panjang',
+          'Bagaimana cara menghitung luas segitiga?',
+          'Apa perbedaan antara keliling dan luas?',
+          'Sifat-sifat bangun datar jajar genjang'
+        ];
+      }
+      // Bangun Ruang
+      if (/\b(bangun ruang|kubus|balok|tabung|kerucut|rusuk|sisi|sudut|volume)\b/i.test(ctx)) {
+        return [
+          'Berapa banyak rusuk dan titik sudut kubus?',
+          'Bagaimana rumus mencari volume balok?',
+          'Apa bedanya bangun datar dan bangun ruang?',
+          'Bentuk jaring-jaring kubus seperti apa?'
+        ];
+      }
+      // Pertanyaan identitas guru
+      if (/\b(guru apa|siapa kamu|siapa anda|pak codi|namamu)\b/i.test(ctx)) {
+        return [
+          'Bisa bantu jelaskan materi pecahan?',
+          'Trik cepat operasi hitung perkalian',
+          'Coba beri aku 1 soal latihan matematika seru!',
+          'Bagaimana cara menghitung luas bangun datar?'
+        ];
+      }
+      // Default dinamis Matematika
+      return [
+        'Tips memahami soal cerita matematika',
+        'Trik cepat perkalian matematika SD',
+        'Cara mudah menghitung pecahan campuran',
+        'Beri aku teka-teki logika angka seru!'
+      ];
+    }
+
+    // Default: IPAS / Sains (Bu Codi)
+    if (/\b(daun|hijau|klorofil|fotosintesis|tumbuhan|akar|batang|bunga)\b/i.test(ctx)) {
+      return [
+        'Apa saja yang dibutuhkan tumbuhan saat fotosintesis?',
+        'Mengapa daun tumbuhan warnanya hijau?',
+        'Bagaimana tumbuhan bernapas di malam hari?',
+        'Apa fungsi akar dan batang bagi tumbuhan?'
+      ];
+    }
+    if (/\b(hewan|binatang|fauna|komodo|orangutan|mamalia|karnivora|herbivora)\b/i.test(ctx)) {
+      return [
+        'Apa saja hewan endemik langka khas Indonesia?',
+        'Apa perbedaan hewan herbivora, karnivora, dan omnivora?',
+        'Bagaimana rantai makanan di hutan nusantara?',
+        'Mengapa Komodo hanya ada di Indonesia?'
+      ];
+    }
+    if (/\b(bumi|matahari|bulan|planet|tata surya|luar angkasa|bintang|gerhana)\b/i.test(ctx)) {
+      return [
+        'Mengapa bumi satu-satunya planet yang berpenghuni?',
+        'Bagaimana proses terjadinya gerhana bulan?',
+        'Apa planet terbesar di tata surya kita?',
+        'Berapa lama waktu bumi mengelilingi matahari?'
+      ];
+    }
+    if (/\b(hujan|air|siklus|awan|sungai|laut|alam|gunung)\b/i.test(ctx)) {
+      return [
+        'Bagaimana proses terjadinya hujan dari awal?',
+        'Mengapa air laut rasanya asin?',
+        'Bagaimana siklus air di bumi tidak pernah habis?',
+        'Mengapa gunung berapi bisa meletus?'
+      ];
+    }
+    if (/\b(pahlawan|kemerdekaan|kartini|diponegoro|nusantara|sejarah)\b/i.test(ctx)) {
+      return [
+        'Kisah perjuangan R.A. Kartini untuk anak Indonesia',
+        'Mengapa Indonesia disebut negara kepulauan?',
+        'Siapa saja tokoh pahlawan dari Maluku?',
+        'Kisah peristiwa proklamasi kemerdekaan 1945'
+      ];
+    }
+    // Pertanyaan identitas guru
+    if (/\b(guru apa|siapa kamu|siapa anda|bu codi|namamu)\b/i.test(ctx)) {
+      return [
+        'Ceritakan misteri luar angkasa dong!',
+        'Hewan unik asli Indonesia apa saja?',
+        'Kenapa daun warnanya hijau?',
+        'Bagaimana proses terjadinya hujan?'
+      ];
+    }
+    // Default dinamis IPAS
+    return [
+      'Bagaimana proses terjadinya hujan?',
+      'Hewan langka khas Indonesia apa saja?',
+      'Kenapa bumi mengelilingi matahari?',
+      'Kisah pahlawan nusantara yang inspiratif'
+    ];
+  }
+
+  function renderQuickChips(targetSession = null) {
     if (!chipsBar) return;
     chipsBar.innerHTML = '';
 
-    const profile = window.CodiAI && window.CodiAI.TEACHER_PROFILES ? window.CodiAI.TEACHER_PROFILES[currentTeacher] : null;
-    if (!profile || !profile.quickPrompts) return;
+    const session = targetSession || getActiveSession();
+    const suggestions = generateContextualSuggestions(session);
+    if (!suggestions || suggestions.length === 0) return;
 
-    profile.quickPrompts.forEach((prompt) => {
+    suggestions.forEach((prompt, index) => {
       const chip = document.createElement('button');
       chip.type = 'button';
       chip.className = 'btn-quick-chip';
       chip.textContent = prompt;
+      chip.style.animationDelay = `${index * 45}ms`;
       chip.addEventListener('click', () => {
         handleUserSubmit(prompt);
       });
@@ -1837,6 +2097,9 @@ document.addEventListener('DOMContentLoaded', () => {
       isAiResponding = false;
       updateMascotStateUI('Codi Siap Menjawab', 'idle');
       scrollChatToBottom(true);
+
+      // Perbarui saran pertanyaan cepat secara dinamis mengikuti alur chat
+      renderQuickChips(session);
     }
 
     function fallbackToLocalReasoning() {

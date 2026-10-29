@@ -106,7 +106,7 @@
       const isPancasilaQuestion = /\b(pancasila|sila|garuda|bhinneka|lambang negara|gotong royong|musyawarah|hak|kewajiban|aturan|norma|sopan santun|toleransi|keadilan sosial|pkn|budi pekerti)\b/i.test(lower);
       if (isPancasilaQuestion) {
         return {
-          text: 'Wah, kalau topik nilai-nilai luhur Pancasila, lambang negara, dan budi pekerti anak Indonesia, jagonya adalah **Kak Codi** (Guru Pendidikan Pancasila SD)!\n\nYuk, tanyakan ke Kak Codi di ruang kelas Pendidikan Pancasila ya! 🇮🇩',
+          text: 'Wah, kalau topik nilai-nilai luhur Pancasila, lambang negara, dan budi pekerti anak Indonesia, jagonya adalah **Kak Codi** (Guru Pendidikan Pancasila SD)!\n\nYuk, tanyakan ke Kak Codi di ruang kelas Pendidikan Pancasila ya!',
           followUp: 'Beralih ke Kak Codi untuk mempelajari nilai Pancasila ini ya!'
         };
       }
@@ -227,7 +227,7 @@
       const isPancasilaQuestion = /\b(pancasila|sila|garuda|bhinneka|lambang negara|gotong royong|musyawarah|hak anak|kewajiban anak|aturan sekolah|norma sopan santun|pkn|budi pekerti)\b/i.test(lower);
       if (isPancasilaQuestion) {
         return {
-          text: 'Wah, kalau topik nilai-nilai luhur Pancasila, lambang negara, dan budi pekerti anak Indonesia, ahlinya adalah **Kak Codi** (Guru Pendidikan Pancasila SD)!\n\nYuk, tanyakan ke Kak Codi di kelas Pendidikan Pancasila ya! 🇮🇩',
+          text: 'Wah, kalau topik nilai-nilai luhur Pancasila, lambang negara, dan budi pekerti anak Indonesia, ahlinya adalah **Kak Codi** (Guru Pendidikan Pancasila SD)!\n\nYuk, tanyakan ke Kak Codi di kelas Pendidikan Pancasila ya!',
           followUp: 'Beralih ke Kak Codi untuk mempelajari nilai Pancasila ini ya!'
         };
       }

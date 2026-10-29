@@ -1996,6 +1996,17 @@ html.theme-light .theme-icon-moon {
   display: none;
 }
 
+@keyframes chipPopIn {
+  from {
+    opacity: 0;
+    transform: translateY(5px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
 .btn-quick-chip {
   display: inline-flex;
   align-items: center;
@@ -2010,6 +2021,7 @@ html.theme-light .theme-icon-moon {
   cursor: pointer;
   transition: all 0.18s ease;
   flex-shrink: 0;
+  animation: chipPopIn 0.24s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 .btn-quick-chip:hover {
