@@ -1,5 +1,5 @@
-// Codi AI PWA Service Worker v3.0.0 (Agibot-Style Furry 3D Companion)
-const CACHE_NAME = 'codi-ai-cache-v30';
+// Codi AI PWA Service Worker v3.1.0 (Final Beta - Supabase Auth & DB Ready)
+const CACHE_NAME = 'codi-ai-cache-v31';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -9,6 +9,7 @@ const STATIC_ASSETS = [
   '/js/ai-teacher.js',
   '/js/speech.js',
   '/js/codi-3d.js',
+  '/js/vendor/supabase.min.js',
   '/js/vendor/three.min.js',
   '/icons/icon.svg',
   '/icons/icon-192.png',
@@ -45,8 +46,13 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(event.request.url);
 
-  // Do not intercept or cache real-time AI endpoints
-  if (url.pathname.startsWith('/api/')) {
+  // Do not intercept or cache real-time AI/Auth endpoints or external Supabase domains
+  if (
+    url.origin !== self.location.origin ||
+    url.pathname.startsWith('/api/') ||
+    url.searchParams.has('code') ||
+    url.searchParams.has('error')
+  ) {
     return;
   }
 

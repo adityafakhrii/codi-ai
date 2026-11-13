@@ -359,9 +359,99 @@ function getConfiguredModels() {
   return parsed;
 }
 
+async function callSupabaseQuotaRpc(rpcName, req) {
+  const supabaseUrl = (process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '').trim().replace(/\/+$/, '');
+  const supabaseAnonKey = (process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '').trim();
+  const authHeader = String(req.headers['authorization'] || '');
+  const match = authHeader.match(/^Bearer\s+(.+)$/i);
+  const accessToken = match ? match[1].trim() : '';
+
+  if (!supabaseUrl || !supabaseAnonKey) {
+    return { status: 503, body: { error: 'Konfigurasi Supabase server belum lengkap di file .env.' } };
+  }
+
+  if (!accessToken || accessToken === supabaseAnonKey) {
+    return { status: 401, body: { error: 'Silakan masuk dengan akun Google terlebih dahulu.' } };
+  }
+
+  try {
+    const rpcRes = await fetch(`${supabaseUrl}/rest/v1/rpc/${rpcName}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': supabaseAnonKey,
+        'Authorization': `Bearer ${accessToken}`
+      },
+      body: '{}'
+    });
+
+    if (rpcRes.status === 401 || rpcRes.status === 403) {
+      return { status: 401, body: { error: 'Sesi login Google sudah berakhir. Silakan masuk ulang.' } };
+    }
+
+    if (!rpcRes.ok) {
+      return { status: 500, body: { error: 'Gagal memvalidasi kuota pesan di server Supabase.' } };
+    }
+
+    const quota = await rpcRes.json();
+    return { status: 200, quota };
+  } catch (err) {
+    return { status: 502, body: { error: 'Tidak dapat terhubung ke layanan kuota Supabase.' } };
+  }
+}
+
+function buildDevQuotaHeaders(quota) {
+  if (!quota) return {};
+  return {
+    'X-RateLimit-Limit': String(quota.limit ?? 15),
+    'X-RateLimit-Remaining': String(quota.remaining ?? 0),
+    'X-RateLimit-Reset': quota.reset_at ? String(quota.reset_at) : '',
+    'X-RateLimit-WindowStart': quota.window_start ? String(quota.window_start) : '',
+    'Access-Control-Expose-Headers': 'X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset, X-RateLimit-WindowStart, X-Served-Model'
+  };
+}
+
 const server = http.createServer(async (req, res) => {
   const parsedUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
   const pathname = parsedUrl.pathname;
+
+  // Endpoint 0: Public Supabase Client Config
+  if (req.method === 'GET' && pathname === '/api/config') {
+    const supabaseUrl = (process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '').trim().replace(/\/+$/, '');
+    const supabaseAnonKey = (process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '').trim();
+    res.writeHead(200, {
+      'Content-Type': 'application/json; charset=utf-8',
+      'Cache-Control': 'no-store',
+      ...COMMON_SECURITY_HEADERS
+    });
+    res.end(JSON.stringify({
+      configured: Boolean(supabaseUrl && supabaseAnonKey),
+      supabaseUrl,
+      supabaseAnonKey
+    }));
+    return;
+  }
+
+  // Endpoint 0b: Get User Chat Quota (15 chats / 12 hours)
+  if (req.method === 'GET' && pathname === '/api/quota') {
+    const result = await callSupabaseQuotaRpc('get_chat_quota', req);
+    if (result.status !== 200) {
+      res.writeHead(result.status, {
+        'Content-Type': 'application/json; charset=utf-8',
+        'Cache-Control': 'no-store',
+        ...COMMON_SECURITY_HEADERS
+      });
+      res.end(JSON.stringify(result.body));
+      return;
+    }
+    res.writeHead(200, {
+      'Content-Type': 'application/json; charset=utf-8',
+      'Cache-Control': 'no-store',
+      ...COMMON_SECURITY_HEADERS
+    });
+    res.end(JSON.stringify(result.quota));
+    return;
+  }
 
   // Endpoint 1: Status LLM Configuration (OWASP A05: No internal infrastructure leak)
   if (req.method === 'GET' && pathname === '/api/status') {
@@ -430,6 +520,35 @@ const server = http.createServer(async (req, res) => {
         return;
       }
 
+      // 2.5 Verify Supabase Auth & Consume 15-Chat / 12-Hour Quota
+      const quotaResult = await callSupabaseQuotaRpc('consume_chat_quota', req);
+      if (quotaResult.status !== 200) {
+        res.writeHead(quotaResult.status, {
+          'Content-Type': 'application/json; charset=utf-8',
+          'Cache-Control': 'no-store',
+          ...COMMON_SECURITY_HEADERS
+        });
+        res.end(JSON.stringify(quotaResult.body));
+        return;
+      }
+
+      const quota = quotaResult.quota;
+      if (!quota || quota.allowed === false) {
+        res.writeHead(429, {
+          'Content-Type': 'application/json; charset=utf-8',
+          'Cache-Control': 'no-store',
+          ...COMMON_SECURITY_HEADERS
+        });
+        res.end(JSON.stringify({
+          error: 'Kuota 15 pesan per 12 jam sudah habis. Tunggu waktu reset berakhir ya!',
+          code: 'RATE_LIMIT_EXCEEDED',
+          quota
+        }));
+        return;
+      }
+
+      const quotaHeaders = buildDevQuotaHeaders(quota);
+
       // 3. Server-Side Content Safety Guardrail (OWASP LLM01 - Prompt Injection & Minor Protection)
       const safetyWarning = checkServerSafety(userMessage);
       if (safetyWarning) {
@@ -437,6 +556,7 @@ const server = http.createServer(async (req, res) => {
           'Content-Type': 'text/event-stream; charset=utf-8',
           'Cache-Control': 'no-cache',
           'Connection': 'keep-alive',
+          ...quotaHeaders,
           ...COMMON_SECURITY_HEADERS
         });
         const payload = JSON.stringify({
@@ -454,6 +574,7 @@ const server = http.createServer(async (req, res) => {
           'Content-Type': 'text/event-stream; charset=utf-8',
           'Cache-Control': 'no-cache',
           'Connection': 'keep-alive',
+          ...quotaHeaders,
           ...COMMON_SECURITY_HEADERS
         });
 
@@ -543,6 +664,7 @@ const server = http.createServer(async (req, res) => {
             'Cache-Control': 'no-cache',
             'Connection': 'keep-alive',
             'X-Served-Model': currentModel,
+            ...quotaHeaders,
             ...COMMON_SECURITY_HEADERS
           });
 
@@ -566,6 +688,7 @@ const server = http.createServer(async (req, res) => {
           'Content-Type': 'text/event-stream; charset=utf-8',
           'Cache-Control': 'no-cache',
           'Connection': 'keep-alive',
+          ...quotaHeaders,
           ...COMMON_SECURITY_HEADERS
         });
 

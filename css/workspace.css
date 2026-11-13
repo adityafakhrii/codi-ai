@@ -667,7 +667,8 @@
   margin: 0 auto;
 }
 
-.workspace-sidebar.is-collapsed .sidebar-brand-title {
+.workspace-sidebar.is-collapsed .sidebar-brand-title,
+.workspace-sidebar.is-collapsed .sidebar-beta-badge {
   display: none !important;
   opacity: 0 !important;
   max-width: 0 !important;
@@ -4755,6 +4756,145 @@ html.theme-light .codi-dialog-icon-wrapper.is-success {
   color: #059669 !important;
   box-shadow: 0 0 16px rgba(5, 150, 105, 0.15) !important;
 }
+
+/* ============================================================================
+   BETA RATE LIMIT QUOTA & COUNTDOWN BAR
+   ============================================================================ */
+.workspace-quota-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 6px 12px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  font-size: 0.78rem;
+  line-height: 1.35;
+  color: var(--text-muted);
+}
+
+.quota-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-weight: 700;
+  color: #E2E8F0;
+}
+
+.quota-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #34D399;
+  box-shadow: 0 0 8px rgba(52, 211, 153, 0.65);
+  flex-shrink: 0;
+}
+
+.quota-timer-text {
+  font-variant-numeric: tabular-nums;
+  color: rgba(255, 255, 255, 0.72);
+  font-weight: 500;
+}
+
+.workspace-quota-bar.is-warning {
+  border-color: rgba(251, 191, 36, 0.35);
+  background: rgba(251, 191, 36, 0.08);
+}
+
+.workspace-quota-bar.is-warning .quota-dot {
+  background: #FBBF24;
+  box-shadow: 0 0 8px rgba(251, 191, 36, 0.65);
+}
+
+.workspace-quota-bar.is-exhausted {
+  border-color: rgba(248, 113, 113, 0.45);
+  background: rgba(239, 68, 68, 0.12);
+}
+
+.workspace-quota-bar.is-exhausted .quota-dot {
+  background: #F87171;
+  box-shadow: 0 0 8px rgba(248, 113, 113, 0.7);
+}
+
+.workspace-quota-bar.is-exhausted .quota-pill {
+  color: #FECACA;
+}
+
+.workspace-quota-bar.is-exhausted .quota-timer-text {
+  color: #FCA5A5;
+  font-weight: 600;
+}
+
+.dock-text-form.is-quota-locked {
+  opacity: 0.68;
+  border-color: rgba(248, 113, 113, 0.4) !important;
+  cursor: not-allowed;
+}
+
+.dock-text-form.is-quota-locked .dock-input-field:disabled,
+.dock-text-form.is-quota-locked .btn-dock-send:disabled,
+.dock-text-form.is-quota-locked .btn-dock-mic:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.btn-quick-chip:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.btn-google-action:disabled {
+  opacity: 0.72;
+  cursor: wait;
+}
+
+.user-avatar-small img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+}
+
+html[data-theme="light"] .workspace-quota-bar,
+html.theme-light .workspace-quota-bar {
+  background: #F8FAFC !important;
+  border-color: #CBD5E1 !important;
+  color: #475569 !important;
+}
+
+html[data-theme="light"] .quota-pill,
+html.theme-light .quota-pill {
+  color: #0F172A !important;
+}
+
+html[data-theme="light"] .quota-timer-text,
+html.theme-light .quota-timer-text {
+  color: #475569 !important;
+}
+
+html[data-theme="light"] .workspace-quota-bar.is-warning,
+html.theme-light .workspace-quota-bar.is-warning {
+  background: #FFFBEB !important;
+  border-color: #FCD34D !important;
+}
+
+html[data-theme="light"] .workspace-quota-bar.is-exhausted,
+html.theme-light .workspace-quota-bar.is-exhausted {
+  background: #FEF2F2 !important;
+  border-color: #FCA5A5 !important;
+}
+
+html[data-theme="light"] .workspace-quota-bar.is-exhausted .quota-pill,
+html[data-theme="light"] .workspace-quota-bar.is-exhausted .quota-timer-text,
+html.theme-light .workspace-quota-bar.is-exhausted .quota-pill,
+html.theme-light .workspace-quota-bar.is-exhausted .quota-timer-text {
+  color: #B91C1C !important;
+}
+
 
 
 

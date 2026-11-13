@@ -20,5 +20,8 @@
   "devDependencies": {
     "@edgeone/makers-mcp": "^0.0.4",
     "sharp": "^0.35.5"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.119.0"
   }
 }

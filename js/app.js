@@ -270,11 +270,25 @@ document.addEventListener('DOMContentLoaded', () => {
   const authModal = document.getElementById('auth-modal');
 
   let currentUser = null;
-  let currentTeacher = 'math'; // 'math' | 'general'
+  let currentSession = null;
+  let supabaseClient = null;
+  let supabaseConfigured = false;
+  let currentTeacher = 'math'; // 'math' | 'general' | 'pancasila'
   let chatSessions = [];
   let activeSessionId = null;
-  let currentTeacherFilter = 'all'; // 'all' | 'math' | 'general'
+  let currentTeacherFilter = 'all'; // 'all' | 'math' | 'general' | 'pancasila'
   let sidebarSearchQuery = '';
+
+  let quotaState = {
+    limit: 15,
+    used: 0,
+    remaining: 15,
+    windowStart: null,
+    resetAt: null,
+    isLimited: false
+  };
+  let quotaCountdownInterval = null;
+  let quotaSyncInFlight = false;
 
   function escapeHtml(str) {
     if (!str) return '';
@@ -317,115 +331,361 @@ document.addEventListener('DOMContentLoaded', () => {
     return 'Sebelumnya';
   }
 
+  function generateUuid() {
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+      return crypto.randomUUID();
+    }
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+      const r = Math.random() * 16 | 0;
+      const v = c === 'x' ? r : (r & 0x3 | 0x8);
+      return v.toString(16);
+    });
+  }
+
   function createDefaultSession(teacherId, defaultTitle) {
     const profile = window.CodiAI && window.CodiAI.TEACHER_PROFILES ? window.CodiAI.TEACHER_PROFILES[teacherId] : null;
     const now = new Date();
+    const greetingId = generateUuid();
     return {
-      id: 'session_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
+      id: generateUuid(),
       teacherId: teacherId,
       title: defaultTitle,
       createdAt: now.toISOString(),
       updatedAt: now.toISOString(),
+      persisted: false,
       messages: [
         {
+          id: greetingId,
           sender: 'ai',
           teacherName: profile ? profile.name : 'Codi',
           text: profile ? profile.greeting : 'Halo adik pintar! Ada yang bisa Codi bantu hari ini?',
           timestamp: now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
-          isoTime: now.toISOString()
+          isoTime: now.toISOString(),
+          persisted: false
         }
       ]
     };
   }
 
-  function loadStoredState() {
+  function saveChatSessions() {
+    // Disinkronkan langsung ke Supabase (dipertahankan sebagai no-op sinkron agar kompatibel dengan caller UI)
+  }
+
+  async function persistSessionAndGreetingToDb(session) {
+    if (!supabaseClient || !currentUser || !session) return false;
     try {
-      // Pembersihan total riwayat obrolan lama agar aplikasi segar dari nol setelah integrasi API
-      const FRESH_START_KEY = 'codi_fresh_clean_zero_v1';
-      if (!localStorage.getItem(FRESH_START_KEY)) {
-        localStorage.removeItem('codi_chat_sessions');
-        localStorage.removeItem('codi_chat_histories');
-        localStorage.removeItem('codi_active_session_id');
-        localStorage.setItem(FRESH_START_KEY, 'true');
+      if (!session.persisted) {
+        const { error: sessErr } = await supabaseClient
+          .from('chat_sessions')
+          .upsert({
+            id: session.id,
+            user_id: currentUser.id,
+            teacher_id: session.teacherId,
+            title: session.title || 'Obrolan Baru',
+            created_at: session.createdAt,
+            updated_at: session.updatedAt || session.createdAt
+          }, { onConflict: 'id' });
+
+        if (sessErr) {
+          console.warn('Supabase session insert note:', sessErr.message);
+          return false;
+        }
+        session.persisted = true;
       }
 
-      const storedUser = localStorage.getItem('codi_auth_user');
-      if (storedUser) {
-        currentUser = JSON.parse(storedUser);
-      }
-      const storedTeacher = localStorage.getItem('codi_selected_teacher');
-      if (storedTeacher && ['math', 'general', 'pancasila'].includes(storedTeacher)) {
-        currentTeacher = storedTeacher;
-      }
-      const storedSessions = localStorage.getItem('codi_chat_sessions');
-      if (storedSessions) {
-        chatSessions = JSON.parse(storedSessions);
-      } else {
-        chatSessions = [];
-      }
-
-      // Mulai dengan satu sesi bersih tanpa pesan riwayat lama
-      if (!chatSessions || chatSessions.length === 0) {
-        const freshSession = createDefaultSession(currentTeacher, 'Obrolan Baru');
-        chatSessions = [freshSession];
-        activeSessionId = freshSession.id;
-        saveChatSessions();
-      } else {
-        const storedActiveSession = localStorage.getItem('codi_active_session_id');
-        if (storedActiveSession && chatSessions.some(s => s.id === storedActiveSession)) {
-          activeSessionId = storedActiveSession;
-        } else {
-          activeSessionId = chatSessions[0]?.id || null;
+      if (Array.isArray(session.messages) && session.messages.length > 0) {
+        const unpersisted = session.messages.filter((m) => !m.persisted);
+        if (unpersisted.length > 0) {
+          const rows = unpersisted.map((m) => {
+            if (!m.id) m.id = generateUuid();
+            return {
+              id: m.id,
+              session_id: session.id,
+              user_id: currentUser.id,
+              sender: m.sender,
+              teacher_name: m.teacherName || null,
+              content: m.text || '',
+              model: m.model || null,
+              display_time: m.timestamp || null,
+              created_at: m.isoTime || new Date().toISOString()
+            };
+          });
+          const { error: msgErr } = await supabaseClient
+            .from('chat_messages')
+            .upsert(rows, { onConflict: 'id' });
+          if (!msgErr) {
+            unpersisted.forEach((m) => { m.persisted = true; });
+          } else {
+            console.warn('Supabase messages insert note:', msgErr.message);
+          }
         }
       }
-    } catch (e) {
-      console.warn('Storage read error:', e);
+      return true;
+    } catch (err) {
+      console.warn('Persist session error:', err);
+      return false;
     }
   }
 
-  // Safe Storage with Quota Protection & Automatic Pruning (client-localstorage-schema)
-  const MAX_STORED_SESSIONS = 15;
-  const MAX_MESSAGES_PER_SESSION = 30;
+  async function persistMessageToDb(session, msg) {
+    if (!supabaseClient || !currentUser || !session || !msg) return;
+    try {
+      await persistSessionAndGreetingToDb(session);
+      if (!msg.id) msg.id = generateUuid();
+      const { error: msgErr } = await supabaseClient
+        .from('chat_messages')
+        .upsert({
+          id: msg.id,
+          session_id: session.id,
+          user_id: currentUser.id,
+          sender: msg.sender,
+          teacher_name: msg.teacherName || null,
+          content: msg.text || '',
+          model: msg.model || null,
+          display_time: msg.timestamp || null,
+          created_at: msg.isoTime || new Date().toISOString()
+        }, { onConflict: 'id' });
 
-  function pruneSessionsForStorage(sessions) {
-    if (!Array.isArray(sessions)) return [];
-    const trimmed = sessions.slice(0, MAX_STORED_SESSIONS);
-    return trimmed.map(s => {
-      if (Array.isArray(s.messages) && s.messages.length > MAX_MESSAGES_PER_SESSION) {
-        return {
-          ...s,
-          messages: s.messages.slice(-MAX_MESSAGES_PER_SESSION)
-        };
+      if (!msgErr) {
+        msg.persisted = true;
       }
-      return s;
-    });
+
+      await supabaseClient
+        .from('chat_sessions')
+        .update({
+          title: session.title || 'Obrolan Baru',
+          updated_at: session.updatedAt || new Date().toISOString()
+        })
+        .eq('id', session.id)
+        .eq('user_id', currentUser.id);
+    } catch (err) {
+      console.warn('Persist message error:', err);
+    }
   }
 
-  function saveChatSessions() {
+  async function deleteMessageFromDb(messageId) {
+    if (!supabaseClient || !currentUser || !messageId) return;
     try {
-      const sanitized = pruneSessionsForStorage(chatSessions);
-      localStorage.setItem('codi_chat_sessions', JSON.stringify(sanitized));
-      if (activeSessionId) {
-        localStorage.setItem('codi_active_session_id', activeSessionId);
+      await supabaseClient
+        .from('chat_messages')
+        .delete()
+        .eq('id', messageId)
+        .eq('user_id', currentUser.id);
+    } catch (err) {
+      console.warn('Delete message error:', err);
+    }
+  }
+
+  async function loadUserSessionsFromDb() {
+    if (!supabaseClient || !currentUser) return [];
+    try {
+      const { data: sessionRows, error: sessErr } = await supabaseClient
+        .from('chat_sessions')
+        .select('id, teacher_id, title, created_at, updated_at')
+        .eq('user_id', currentUser.id)
+        .order('updated_at', { ascending: false })
+        .limit(50);
+
+      if (sessErr) {
+        console.warn('Load sessions error:', sessErr.message);
+        return [];
       }
-    } catch (e) {
-      console.warn('Storage save error (mencoba eviksi kuota):', e);
-      try {
-        // Jika kuota hampir penuh (QuotaExceededError), pangkas setengah sesi tertua
-        if (chatSessions.length > 3) {
-          const reduced = chatSessions.slice(0, 3).map(s => ({
-            ...s,
-            messages: s.messages ? s.messages.slice(-15) : []
-          }));
-          localStorage.setItem('codi_chat_sessions', JSON.stringify(reduced));
+
+      if (!sessionRows || sessionRows.length === 0) {
+        return [];
+      }
+
+      const sessionIds = sessionRows.map((s) => s.id);
+      const { data: msgRows, error: msgErr } = await supabaseClient
+        .from('chat_messages')
+        .select('id, session_id, sender, teacher_name, content, model, display_time, created_at')
+        .eq('user_id', currentUser.id)
+        .in('session_id', sessionIds)
+        .order('created_at', { ascending: true });
+
+      if (msgErr) {
+        console.warn('Load messages error:', msgErr.message);
+      }
+
+      const msgsBySession = new Map();
+      (msgRows || []).forEach((m) => {
+        if (!msgsBySession.has(m.session_id)) {
+          msgsBySession.set(m.session_id, []);
         }
-      } catch (retryErr) {
-        console.error('Storage quota exhausted completely:', retryErr);
+        const createdDate = new Date(m.created_at);
+        msgsBySession.get(m.session_id).push({
+          id: m.id,
+          sender: m.sender,
+          teacherName: m.teacher_name || undefined,
+          text: m.content,
+          model: m.model || undefined,
+          timestamp: m.display_time || (!isNaN(createdDate.getTime()) ? createdDate.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : ''),
+          isoTime: m.created_at,
+          persisted: true
+        });
+      });
+
+      return sessionRows.map((row) => {
+        const teacherId = ['math', 'general', 'pancasila'].includes(row.teacher_id) ? row.teacher_id : 'math';
+        const messages = msgsBySession.get(row.id) || [];
+        return {
+          id: row.id,
+          teacherId,
+          title: row.title || 'Obrolan Baru',
+          createdAt: row.created_at,
+          updatedAt: row.updated_at || row.created_at,
+          persisted: true,
+          messages
+        };
+      });
+    } catch (err) {
+      console.warn('Load Supabase history failed:', err);
+      return [];
+    }
+  }
+
+  function formatCountdownDuration(ms) {
+    const totalSeconds = Math.max(0, Math.ceil(ms / 1000));
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    if (hours > 0) {
+      return `${hours} jam ${String(minutes).padStart(2, '0')} menit`;
+    }
+    if (minutes > 0) {
+      return `${minutes} menit ${String(seconds).padStart(2, '0')} detik`;
+    }
+    return `${seconds} detik`;
+  }
+
+  function renderQuotaUI() {
+    const quotaBar = document.getElementById('workspace-quota-bar');
+    const countText = document.getElementById('quota-count-text');
+    const timerText = document.getElementById('quota-timer-text');
+    const limit = Number(quotaState.limit) || 15;
+    let remaining = Math.max(0, Number(quotaState.remaining ?? limit));
+    let resetAtMs = quotaState.resetAt ? new Date(quotaState.resetAt).getTime() : null;
+
+    if (resetAtMs && Date.now() >= resetAtMs) {
+      remaining = limit;
+      resetAtMs = null;
+      quotaState.remaining = limit;
+      quotaState.used = 0;
+      quotaState.windowStart = null;
+      quotaState.resetAt = null;
+      quotaState.isLimited = false;
+      if (!quotaSyncInFlight) {
+        fetchUserQuota();
       }
+    }
+
+    const isExhausted = remaining <= 0;
+    const isWarning = remaining > 0 && remaining <= 3;
+
+    if (quotaBar) {
+      quotaBar.classList.toggle('is-exhausted', isExhausted);
+      quotaBar.classList.toggle('is-warning', isWarning);
+    }
+
+    if (countText) {
+      countText.textContent = `${remaining}/${limit} chat tersisa`;
+    }
+
+    const countdownLabel = resetAtMs ? formatCountdownDuration(resetAtMs - Date.now()) : '';
+
+    if (timerText) {
+      if (!resetAtMs) {
+        timerText.textContent = 'Siklus 12 jam dimulai saat chat pertama';
+      } else if (isExhausted) {
+        timerText.textContent = `Kuota habis - Reset dalam ${countdownLabel}`;
+      } else {
+        timerText.textContent = `Reset dalam ${countdownLabel}`;
+      }
+    }
+
+    if (chatForm) {
+      chatForm.classList.toggle('is-quota-locked', isExhausted);
+    }
+    if (textInput) {
+      textInput.disabled = isExhausted;
+      textInput.placeholder = isExhausted
+        ? `Kuota 15 chat habis. Reset dalam ${countdownLabel || 'beberapa saat'}...`
+        : 'Tanya soal pelajaran ke Codi...';
+    }
+    const sendBtnEl = document.getElementById('btn-dock-send');
+    if (sendBtnEl) {
+      sendBtnEl.disabled = isExhausted;
+    }
+    const micBtnEl = document.getElementById('btn-dock-mic');
+    if (micBtnEl) {
+      micBtnEl.disabled = isExhausted;
+    }
+    if (chipsBar) {
+      chipsBar.querySelectorAll('.btn-quick-chip').forEach((chip) => {
+        chip.disabled = isExhausted;
+      });
+    }
+  }
+
+  function startQuotaTimer() {
+    if (quotaCountdownInterval) {
+      clearInterval(quotaCountdownInterval);
+      quotaCountdownInterval = null;
+    }
+    if (quotaState.resetAt) {
+      quotaCountdownInterval = setInterval(() => {
+        renderQuotaUI();
+      }, 1000);
+    }
+  }
+
+  function applyQuotaFromServer(data) {
+    if (!data || typeof data !== 'object') return;
+    const limit = Number(data.limit ?? 15);
+    const remaining = Math.max(0, Number(data.remaining ?? limit));
+    const used = Number(data.used ?? Math.max(0, limit - remaining));
+    const windowStart = data.windowStart ?? data.window_start ?? null;
+    const resetAt = data.resetAt ?? data.reset_at ?? null;
+
+    quotaState = {
+      limit,
+      used,
+      remaining,
+      windowStart,
+      resetAt,
+      isLimited: remaining <= 0
+    };
+    renderQuotaUI();
+    startQuotaTimer();
+  }
+
+  async function fetchUserQuota() {
+    if (!currentSession || !currentSession.access_token) return;
+    quotaSyncInFlight = true;
+    try {
+      const res = await fetch('/api/quota', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${currentSession.access_token}`
+        }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        applyQuotaFromServer(data);
+      }
+    } catch (err) {
+      console.warn('Quota sync note:', err);
+    } finally {
+      quotaSyncInFlight = false;
     }
   }
 
   function showView(viewKey) {
+    if ((viewKey === 'teacherSelect' || viewKey === 'chatWorkspace') && (!currentUser || !currentSession)) {
+      viewKey = 'landing';
+      openAuthModal();
+    }
+
     try {
       if (currentUser && (viewKey === 'teacherSelect' || viewKey === 'chatWorkspace')) {
         localStorage.setItem('codi_active_view', viewKey);
@@ -477,7 +737,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const mobileLoginTrigger = document.getElementById('mobile-login-trigger');
   const btnCloseAuthModal = document.getElementById('btn-close-auth-modal');
   const btnGoogleAction = document.getElementById('btn-google-login-action');
-  const demoAccountButtons = document.querySelectorAll('.btn-demo-account');
+  const googleLoginBtnLabel = document.getElementById('google-login-btn-label');
 
   if (headerLoginBtn) headerLoginBtn.addEventListener('click', openAuthModal);
   if (mobileLoginTrigger) mobileLoginTrigger.addEventListener('click', openAuthModal);
@@ -491,27 +751,103 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  function loginUser(userData) {
-    currentUser = userData;
+  function mapSupabaseUser(authUser) {
+    if (!authUser) return null;
+    const meta = authUser.user_metadata || {};
+    const email = authUser.email || '';
+    const fallbackName = email ? email.split('@')[0] : 'Siswa Codi';
+    const fullName = (meta.full_name || meta.name || fallbackName).trim();
+    const avatarUrl = meta.avatar_url || meta.picture || '';
+    return {
+      id: authUser.id,
+      name: fullName,
+      email: email,
+      avatarUrl: avatarUrl,
+      initial: fullName ? fullName.charAt(0).toUpperCase() : 'C'
+    };
+  }
+
+  function clearLocalAuthArtifacts(clearPreferences = true) {
     try {
-      localStorage.setItem('codi_auth_user', JSON.stringify(userData));
+      localStorage.removeItem('codi_auth_user');
+      localStorage.removeItem('codi_chat_sessions');
+      localStorage.removeItem('codi_chat_histories');
+      localStorage.removeItem('codi_active_session_id');
+      localStorage.removeItem('codi_waitlist');
+      if (clearPreferences) {
+        localStorage.removeItem('codi_selected_teacher');
+        localStorage.removeItem('codi_active_view');
+      }
     } catch (e) {}
+  }
+
+  async function hydrateAuthenticatedSession(session, isFreshLogin = false) {
+    if (!session || !session.user) return;
+    currentSession = session;
+    currentUser = mapSupabaseUser(session.user);
     document.documentElement.classList.add('has-active-session');
+
+    // Bersihkan URL callback OAuth (?code=... atau #access_token=...) setelah terautentikasi
+    if (window.location.search.includes('code=') || window.location.hash.includes('access_token=')) {
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+
+    try {
+      const storedTeacher = localStorage.getItem('codi_selected_teacher');
+      if (storedTeacher && ['math', 'general', 'pancasila'].includes(storedTeacher)) {
+        currentTeacher = storedTeacher;
+      }
+    } catch (e) {}
 
     updateUserUI();
     closeAuthModal();
-    showToast(`Selamat datang, ${userData.name}!`);
-    showView('teacherSelect');
+
+    const loadedSessions = await loadUserSessionsFromDb();
+    chatSessions = loadedSessions;
+    if (chatSessions.length > 0) {
+      activeSessionId = chatSessions[0].id;
+    } else {
+      activeSessionId = null;
+    }
+
+    await fetchUserQuota();
+
+    if (isFreshLogin) {
+      showToast(`Selamat datang, ${currentUser.name}!`, 'success');
+    }
+
+    let savedView = 'teacherSelect';
+    try {
+      savedView = localStorage.getItem('codi_active_view') || 'teacherSelect';
+    } catch (e) {}
+
+    if (savedView === 'chatWorkspace' && activeSessionId && chatSessions.some((s) => s.id === activeSessionId)) {
+      switchSession(activeSessionId);
+      showView('chatWorkspace');
+    } else {
+      showView('teacherSelect');
+    }
   }
 
-  function logoutUser() {
+  async function logoutUser() {
+    if (quotaCountdownInterval) {
+      clearInterval(quotaCountdownInterval);
+      quotaCountdownInterval = null;
+    }
+    if (supabaseClient) {
+      try {
+        await supabaseClient.auth.signOut();
+      } catch (e) {
+        console.warn('Supabase signOut note:', e);
+      }
+    }
+
     currentUser = null;
+    currentSession = null;
+    chatSessions = [];
+    activeSessionId = null;
     document.documentElement.classList.remove('has-active-session');
-    try {
-      localStorage.removeItem('codi_auth_user');
-      localStorage.removeItem('codi_selected_teacher');
-      localStorage.removeItem('codi_active_view');
-    } catch (e) {}
+    clearLocalAuthArtifacts();
 
     if (window.CodiSpeech) {
       window.CodiSpeech.stopSpeaking();
@@ -523,30 +859,43 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   if (btnGoogleAction) {
-    btnGoogleAction.addEventListener('click', () => {
-      // Simulate official Google Sign-In verification
-      loginUser({
-        name: 'Budi Pratama',
-        role: 'Siswa SD Kelas 4',
-        email: 'budi.sd@belajar.id',
-        initial: 'B'
-      });
+    btnGoogleAction.addEventListener('click', async () => {
+      if (!supabaseConfigured || !supabaseClient) {
+        showCustomAlert({
+          title: 'Konfigurasi Supabase Diperlukan',
+          message: 'Autentikasi Google membutuhkan SUPABASE_URL dan SUPABASE_ANON_KEY di server (.env / Environment Variables).',
+          type: 'warning'
+        });
+        return;
+      }
+
+      btnGoogleAction.disabled = true;
+      if (googleLoginBtnLabel) {
+        googleLoginBtnLabel.textContent = 'Menghubungkan ke Google...';
+      }
+
+      try {
+        const { error } = await supabaseClient.auth.signInWithOAuth({
+          provider: 'google',
+          options: {
+            redirectTo: window.location.origin,
+            queryParams: {
+              prompt: 'select_account'
+            }
+          }
+        });
+        if (error) {
+          throw error;
+        }
+      } catch (err) {
+        btnGoogleAction.disabled = false;
+        if (googleLoginBtnLabel) {
+          googleLoginBtnLabel.textContent = 'Lanjutkan dengan Google';
+        }
+        showToast('Gagal membuka login Google. Silakan coba lagi.', 'danger');
+      }
     });
   }
-
-  demoAccountButtons.forEach((btn) => {
-    btn.addEventListener('click', () => {
-      const name = btn.getAttribute('data-name');
-      const role = btn.getAttribute('data-role');
-      const email = btn.getAttribute('data-email');
-      loginUser({
-        name: name,
-        role: role,
-        email: email,
-        initial: name ? name.charAt(0) : 'S'
-      });
-    });
-  });
 
   const btnLogoutFromSelect = document.getElementById('btn-logout-from-select');
   const btnLogoutFromWorkspace = document.getElementById('btn-logout-from-workspace');
@@ -560,9 +909,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const displayName = document.getElementById('user-display-name');
     const avatarLetter = document.getElementById('user-avatar-letter');
     const sidebarDisplayName = document.getElementById('sidebar-display-name');
+    const sidebarBadge = document.querySelector('.sidebar-user-badge');
     if (displayName) displayName.textContent = currentUser.name;
-    if (avatarLetter) avatarLetter.textContent = currentUser.initial || currentUser.name.charAt(0);
+    if (avatarLetter) {
+      if (currentUser.avatarUrl) {
+        avatarLetter.innerHTML = `<img src="${escapeHtml(currentUser.avatarUrl)}" alt="${escapeHtml(currentUser.name)}" referrerpolicy="no-referrer">`;
+      } else {
+        avatarLetter.textContent = currentUser.initial || currentUser.name.charAt(0);
+      }
+    }
     if (sidebarDisplayName) sidebarDisplayName.textContent = currentUser.name;
+    if (sidebarBadge) sidebarBadge.textContent = currentUser.email || 'Akun Google Aktif';
   }
 
   // 7. Teacher Selection & Workspace Navigation
@@ -628,6 +985,12 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function enterTeacherWorkspace(teacherId) {
+    if (!currentUser || !currentSession) {
+      openAuthModal();
+      showToast('Silakan masuk dengan Akun Google terlebih dahulu.');
+      return;
+    }
+
     currentTeacher = teacherId;
     currentTeacherFilter = teacherId;
     try {
@@ -644,7 +1007,7 @@ document.addEventListener('DOMContentLoaded', () => {
         : 'Eksplorasi Sains & Flora Fauna';
       targetSession = createDefaultSession(teacherId, defaultTitle);
       chatSessions.unshift(targetSession);
-      saveChatSessions();
+      persistSessionAndGreetingToDb(targetSession);
     }
 
     activeSessionId = targetSession.id;
@@ -652,6 +1015,7 @@ document.addEventListener('DOMContentLoaded', () => {
     updateActiveSessionHeader(targetSession);
     renderChatStream();
     renderQuickChips();
+    renderQuotaUI();
     if (typeof syncSidebarTeacherPills === 'function') {
       syncSidebarTeacherPills();
     }
@@ -815,6 +1179,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // New Chat Action
   function createNewSession(teacherId = currentTeacher) {
+    if (!currentUser || !currentSession) {
+      openAuthModal();
+      return;
+    }
     stopCurrentMessageAudio();
     const profile = window.CodiAI && window.CodiAI.TEACHER_PROFILES ? window.CodiAI.TEACHER_PROFILES[teacherId] : null;
     const teacherName = profile ? profile.name : 'Codi';
@@ -828,8 +1196,9 @@ document.addEventListener('DOMContentLoaded', () => {
     updateActiveSessionHeader(newSession);
     renderChatStream();
     renderQuickChips();
+    renderQuotaUI();
     renderSidebarSessions();
-    saveChatSessions();
+    persistSessionAndGreetingToDb(newSession);
 
     showToast(`Sesi obrolan baru dengan ${teacherName} siap!`);
 
@@ -919,17 +1288,31 @@ document.addEventListener('DOMContentLoaded', () => {
     saveChatSessions();
   }
 
-  function deleteSession(sessionId) {
+  async function deleteSession(sessionId) {
     const idx = chatSessions.findIndex((s) => s.id === sessionId);
     if (idx === -1) return;
 
+    const target = chatSessions[idx];
     stopCurrentMessageAudio();
     chatSessions.splice(idx, 1);
+
+    if (supabaseClient && currentUser && target && target.persisted) {
+      try {
+        await supabaseClient
+          .from('chat_sessions')
+          .delete()
+          .eq('id', sessionId)
+          .eq('user_id', currentUser.id);
+      } catch (err) {
+        console.warn('Delete session DB note:', err);
+      }
+    }
 
     if (chatSessions.length === 0) {
       const freshSession = createDefaultSession(currentTeacher, 'Obrolan Baru');
       chatSessions.push(freshSession);
       activeSessionId = freshSession.id;
+      persistSessionAndGreetingToDb(freshSession);
     } else if (activeSessionId === sessionId) {
       activeSessionId = chatSessions[0].id;
     }
@@ -941,29 +1324,38 @@ document.addEventListener('DOMContentLoaded', () => {
       updateActiveSessionHeader(active);
     }
 
-    saveChatSessions();
     renderSidebarSessions();
     renderChatStream();
     renderQuickChips();
+    renderQuotaUI();
     showToast('Obrolan berhasil dihapus.', 'success');
   }
 
-  function clearAllSessions() {
+  async function clearAllSessions() {
     stopCurrentMessageAudio();
-    localStorage.removeItem('codi_chat_sessions');
-    localStorage.removeItem('codi_chat_histories');
-    localStorage.removeItem('codi_active_session_id');
+
+    if (supabaseClient && currentUser) {
+      try {
+        await supabaseClient
+          .from('chat_sessions')
+          .delete()
+          .eq('user_id', currentUser.id);
+      } catch (err) {
+        console.warn('Clear all sessions DB note:', err);
+      }
+    }
 
     const freshSession = createDefaultSession(currentTeacher, 'Obrolan Baru');
     chatSessions = [freshSession];
     activeSessionId = freshSession.id;
+    persistSessionAndGreetingToDb(freshSession);
 
-    saveChatSessions();
     applyTeacherVisuals(currentTeacher);
     updateActiveSessionHeader(freshSession);
     renderSidebarSessions();
     renderChatStream();
     renderQuickChips();
+    renderQuotaUI();
     showToast('Seluruh riwayat chat berhasil dibersihkan mulai dari nol.', 'success');
   }
   window.clearCodiAllSessions = clearAllSessions;
@@ -1610,6 +2002,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     regenBtn.addEventListener('click', () => {
       if (isAiResponding) return;
+      if (quotaState.remaining <= 0) {
+        renderQuotaUI();
+        showToast('Kuota 15 chat habis. Tunggu waktu reset berakhir ya!', 'warning');
+        return;
+      }
       const session = getActiveSession();
       if (!session) return;
 
@@ -1626,8 +2023,10 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
-      session.messages.splice(idx, 1);
-      saveChatSessions();
+      const [removedMsg] = session.messages.splice(idx, 1);
+      if (removedMsg && removedMsg.id && removedMsg.persisted) {
+        deleteMessageFromDb(removedMsg.id);
+      }
       renderChatStream();
 
       showToast('Membuat ulang respons AI...');
@@ -1974,6 +2373,7 @@ document.addEventListener('DOMContentLoaded', () => {
       chip.className = 'btn-quick-chip';
       chip.textContent = prompt;
       chip.style.animationDelay = `${index * 45}ms`;
+      chip.disabled = quotaState.remaining <= 0;
       chip.addEventListener('click', () => {
         handleUserSubmit(prompt);
       });
@@ -1982,6 +2382,16 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function handleUserSubmit(userText, isRegen = false) {
+    if (!currentUser || !currentSession) {
+      openAuthModal();
+      showToast('Silakan masuk dengan Akun Google terlebih dahulu.', 'warning');
+      return;
+    }
+    if (quotaState.remaining <= 0) {
+      renderQuotaUI();
+      showToast('Kuota 15 chat per 12 jam sudah habis. Tunggu waktu reset berakhir ya!', 'warning');
+      return;
+    }
     if (!userText || !userText.trim() || isAiResponding) return;
     const cleanText = userText.trim();
     const session = getActiveSession();
@@ -1991,16 +2401,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const now = new Date();
     const nowTime = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+    let pendingUserMsg = null;
+    const prevTitle = session.title;
+    const prevUpdatedAt = session.updatedAt;
 
     // 1. Append user message if not regenerating
     if (!isRegen) {
-      const userMsg = {
+      pendingUserMsg = {
+        id: generateUuid(),
         sender: 'user',
         text: cleanText,
         timestamp: nowTime,
-        isoTime: now.toISOString()
+        isoTime: now.toISOString(),
+        persisted: false
       };
-      session.messages.push(userMsg);
+      session.messages.push(pendingUserMsg);
 
       // Auto-title generation if new chat
       if (session.title === 'Obrolan Baru' || session.title.startsWith('Obrolan Baru')) {
@@ -2009,13 +2424,27 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       session.updatedAt = now.toISOString();
-      saveChatSessions();
       renderChatStream();
       renderSidebarSessions();
       updateActiveSessionHeader(session);
     }
 
     if (textInput) textInput.value = '';
+
+    function rollbackPendingUserMessage() {
+      if (!isRegen && pendingUserMsg) {
+        const msgIdx = session.messages.lastIndexOf(pendingUserMsg);
+        if (msgIdx !== -1) {
+          session.messages.splice(msgIdx, 1);
+        }
+        session.title = prevTitle;
+        session.updatedAt = prevUpdatedAt;
+        renderChatStream();
+        renderSidebarSessions();
+        updateActiveSessionHeader(session);
+        if (textInput) textInput.value = cleanText;
+      }
+    }
 
     // 2. Set Thinking State & Show Typing Indicator Dots
     isAiResponding = true;
@@ -2076,12 +2505,14 @@ document.addEventListener('DOMContentLoaded', () => {
       // Save completed message to active session
       const aiNow = new Date();
       const completedAiMsg = {
+        id: generateUuid(),
         sender: 'ai',
         teacherName: teacherName,
         text: fullText,
         model: selectedModel,
         timestamp: responseTime,
-        isoTime: aiNow.toISOString()
+        isoTime: aiNow.toISOString(),
+        persisted: false
       };
 
       // Append ChatGPT-style action bar
@@ -2090,7 +2521,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       session.messages.push(completedAiMsg);
       session.updatedAt = aiNow.toISOString();
-      saveChatSessions();
+      persistMessageToDb(session, completedAiMsg);
       renderSidebarSessions();
       updateActiveSessionHeader(session);
 
@@ -2100,40 +2531,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // Perbarui saran pertanyaan cepat secara dinamis mengikuti alur chat
       renderQuickChips(session);
+      renderQuotaUI();
     }
 
-    function fallbackToLocalReasoning() {
+    function handleChatRequestError(errMessage) {
       if (indicatorRow.parentNode) {
         indicatorRow.parentNode.removeChild(indicatorRow);
       }
-      if (!aiRow.parentNode) {
-        chatFeed.appendChild(aiRow);
-      }
-
-      // Fallback: mesin penalaran pedagogis bawaan
-      const aiResult = window.CodiAI.generatePedagogicalResponse(session.teacherId, cleanText);
-      fullText = aiResult.text;
-
-      const words = fullText.split(/(\s+)/);
-      let wordIndex = 0;
-      updateMascotStateUI(`${teacherName} sedang menjawab...`, 'typing');
-
-      const streamTimer = setInterval(() => {
-        if (wordIndex < words.length) {
-          wordIndex++;
-          textSpan.innerHTML = renderMarkdownToHtml(words.slice(0, wordIndex).join(''));
-          scrollChatToBottom(false);
-        } else {
-          clearInterval(streamTimer);
-          finalizeAiResponse();
-        }
-      }, 24);
+      isAiResponding = false;
+      updateMascotStateUI('Codi Siap Menjawab', 'idle');
+      rollbackPendingUserMessage();
+      showToast(errMessage || 'Gagal terhubung ke server AI. Periksa koneksi internet dan coba lagi.', 'danger');
     }
 
     try {
+      const activeToken = currentSession ? currentSession.access_token : '';
       fetch('/api/chat', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${activeToken}`
+        },
         body: JSON.stringify({
           teacherId: session.teacherId,
           message: cleanText,
@@ -2141,15 +2559,71 @@ document.addEventListener('DOMContentLoaded', () => {
           history: session.messages.slice(-8)
         })
       }).then(async (response) => {
+        if (response.status === 401) {
+          if (indicatorRow.parentNode) indicatorRow.parentNode.removeChild(indicatorRow);
+          isAiResponding = false;
+          updateMascotStateUI('Sesi Login Berakhir', 'idle');
+          rollbackPendingUserMessage();
+          showToast('Sesi login Google sudah berakhir. Silakan masuk ulang.', 'warning');
+          await logoutUser();
+          openAuthModal();
+          return;
+        }
+
+        if (response.status === 429) {
+          if (indicatorRow.parentNode) indicatorRow.parentNode.removeChild(indicatorRow);
+          isAiResponding = false;
+          updateMascotStateUI('Batas Chat Tercapai', 'idle');
+          rollbackPendingUserMessage();
+          try {
+            const errJson = await response.json();
+            if (errJson && errJson.quota) {
+              applyQuotaFromServer(errJson.quota);
+            } else {
+              await fetchUserQuota();
+            }
+          } catch (e) {
+            await fetchUserQuota();
+          }
+          showToast('Kuota 15 chat per 12 jam sudah habis!', 'warning');
+          return;
+        }
+
+        if (!response.ok || !response.body) {
+          let errMsg = `Gagal memproses permintaan (HTTP ${response.status}).`;
+          try {
+            const errJson = await response.json();
+            if (errJson && errJson.error) errMsg = errJson.error;
+          } catch (parseErr) {}
+          throw new Error(errMsg);
+        }
+
+        // Sinkronkan sisa kuota dan waktu reset dari header server secara langsung
+        const rlRemaining = response.headers.get('X-RateLimit-Remaining');
+        const rlReset = response.headers.get('X-RateLimit-Reset');
+        const rlWindowStart = response.headers.get('X-RateLimit-WindowStart');
+        const rlLimit = response.headers.get('X-RateLimit-Limit');
+        if (rlRemaining !== null) {
+          applyQuotaFromServer({
+            limit: rlLimit ? Number(rlLimit) : quotaState.limit,
+            remaining: Number(rlRemaining),
+            resetAt: rlReset || quotaState.resetAt,
+            windowStart: rlWindowStart || quotaState.windowStart
+          });
+        } else {
+          fetchUserQuota();
+        }
+
+        // Kuota tervalidasi -> simpan pesan user ke database Supabase
+        if (!isRegen && pendingUserMsg) {
+          persistMessageToDb(session, pendingUserMsg);
+        }
+
         if (indicatorRow.parentNode) {
           indicatorRow.parentNode.removeChild(indicatorRow);
         }
         chatFeed.appendChild(aiRow);
         updateMascotStateUI(`${teacherName} sedang menjawab...`, 'typing');
-
-        if (!response.ok || !response.body) {
-          throw new Error(`HTTP ${response.status}`);
-        }
 
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
@@ -2221,13 +2695,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
       }).catch((err) => {
-        console.warn('Gagal memanggil API LLM, beralih ke mesin penalaran lokal:', err);
-        fallbackToLocalReasoning();
+        console.warn('Gagal memanggil API chat:', err);
+        handleChatRequestError(err && err.message ? err.message : '');
       });
 
     } catch (err) {
-      console.warn('Gagal memanggil API LLM, beralih ke mesin penalaran lokal:', err);
-      fallbackToLocalReasoning();
+      console.warn('Gagal memanggil API chat:', err);
+      handleChatRequestError(err && err.message ? err.message : '');
     }
   }
 
@@ -2309,29 +2783,15 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // 12. Landing Page Waitlist Form
+  // 12. Landing Page Access Action (Direct to Google Login Modal)
   const waitlistForm = document.getElementById('waitlist-form');
   const emailInput = document.getElementById('waitlist-input') || document.getElementById('waitlist-email');
 
   if (waitlistForm && emailInput) {
     waitlistForm.addEventListener('submit', (e) => {
       e.preventDefault();
-      const email = emailInput.value.trim();
-
-      if (!email || !email.includes('@')) {
-        showToast('Mohon masukkan alamat email yang valid.');
-        emailInput.focus();
-        return;
-      }
-
-      try {
-        const stored = JSON.parse(localStorage.getItem('codi_waitlist') || '[]');
-        stored.push({ email, timestamp: new Date().toISOString() });
-        localStorage.setItem('codi_waitlist', JSON.stringify(stored));
-      } catch (err) {}
-
       emailInput.value = '';
-      showToast('Selamat! Email Anda berhasil terdaftar akses awal Codi AI.');
+      openAuthModal();
     });
   }
 
@@ -2420,26 +2880,70 @@ document.addEventListener('DOMContentLoaded', () => {
   } catch (e) {}
   updateThemeUI(activeTheme);
 
+  async function initializeSupabaseAuthAndApp() {
+    try {
+      clearLocalAuthArtifacts(false);
+      const res = await fetch('/api/config', { cache: 'no-store' });
+      const cfg = await res.json();
+
+      if (!cfg || !cfg.configured || !cfg.supabaseUrl || !cfg.supabaseAnonKey || !window.supabase) {
+        supabaseConfigured = false;
+        document.documentElement.classList.remove('has-active-session');
+        showView('landing');
+        return;
+      }
+
+      supabaseConfigured = true;
+      supabaseClient = window.supabase.createClient(cfg.supabaseUrl, cfg.supabaseAnonKey, {
+        auth: {
+          persistSession: true,
+          autoRefreshToken: true,
+          detectSessionInUrl: true
+        }
+      });
+
+      const { data: sessionData, error: sessionErr } = await supabaseClient.auth.getSession();
+      if (sessionErr) {
+        console.warn('Supabase getSession note:', sessionErr.message);
+      }
+
+      if (sessionData && sessionData.session) {
+        await hydrateAuthenticatedSession(sessionData.session, window.location.search.includes('code=') || window.location.hash.includes('access_token='));
+      } else {
+        currentUser = null;
+        currentSession = null;
+        document.documentElement.classList.remove('has-active-session');
+        showView('landing');
+      }
+
+      supabaseClient.auth.onAuthStateChange(async (event, session) => {
+        if (event === 'TOKEN_REFRESHED') {
+          currentSession = session;
+          return;
+        }
+        if (event === 'SIGNED_IN' && session) {
+          if (!currentUser || currentUser.id !== session.user.id) {
+            await hydrateAuthenticatedSession(session, true);
+          } else {
+            currentSession = session;
+          }
+        } else if (event === 'SIGNED_OUT') {
+          currentUser = null;
+          currentSession = null;
+          chatSessions = [];
+          activeSessionId = null;
+          document.documentElement.classList.remove('has-active-session');
+          showView('landing');
+        }
+      });
+    } catch (err) {
+      console.warn('Supabase init error:', err);
+      document.documentElement.classList.remove('has-active-session');
+      showView('landing');
+    }
+  }
+
   checkLlmStatus();
   initModelPicker();
-  loadStoredState();
-  if (currentUser) {
-    document.documentElement.classList.add('has-active-session');
-    updateUserUI();
-
-    let savedView = 'teacherSelect';
-    try {
-      savedView = localStorage.getItem('codi_active_view') || 'teacherSelect';
-    } catch (e) {}
-
-    if (savedView === 'chatWorkspace' && activeSessionId && chatSessions.some((s) => s.id === activeSessionId)) {
-      switchSession(activeSessionId);
-      showView('chatWorkspace');
-    } else {
-      showView('teacherSelect');
-    }
-  } else {
-    document.documentElement.classList.remove('has-active-session');
-    showView('landing');
-  }
+  initializeSupabaseAuthAndApp();
 });

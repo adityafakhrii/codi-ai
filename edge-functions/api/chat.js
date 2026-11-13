@@ -151,6 +151,81 @@ function checkServerSafety(input) {
   return null;
 }
 
+function jsonResponse(body, status) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: {
+      'Content-Type': 'application/json; charset=utf-8',
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Expose-Headers': 'X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset, X-RateLimit-WindowStart, X-Served-Model',
+      'X-Content-Type-Options': 'nosniff',
+      'Cache-Control': 'no-store'
+    }
+  });
+}
+
+function buildRateLimitHeaders(quota) {
+  if (!quota) return {};
+  return {
+    'X-RateLimit-Limit': String(quota.limit ?? 15),
+    'X-RateLimit-Remaining': String(quota.remaining ?? 0),
+    'X-RateLimit-Reset': quota.reset_at ? String(quota.reset_at) : '',
+    'X-RateLimit-WindowStart': quota.window_start ? String(quota.window_start) : '',
+    'Access-Control-Expose-Headers': 'X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset, X-RateLimit-WindowStart, X-Served-Model'
+  };
+}
+
+async function verifyUserAndConsumeQuota(request, env) {
+  const supabaseUrl = (env.SUPABASE_URL || env.NEXT_PUBLIC_SUPABASE_URL || '').trim().replace(/\/+$/, '');
+  const supabaseAnonKey = (env.SUPABASE_ANON_KEY || env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '').trim();
+  const authHeader = request.headers.get('authorization') || '';
+  const match = authHeader.match(/^Bearer\s+(.+)$/i);
+  const accessToken = match ? match[1].trim() : '';
+
+  if (!supabaseUrl || !supabaseAnonKey) {
+    return { errorResponse: jsonResponse({ error: 'Konfigurasi Supabase server belum lengkap.' }, 503) };
+  }
+
+  if (!accessToken || accessToken === supabaseAnonKey) {
+    return { errorResponse: jsonResponse({ error: 'Silakan masuk dengan akun Google terlebih dahulu.' }, 401) };
+  }
+
+  try {
+    const rpcRes = await fetch(`${supabaseUrl}/rest/v1/rpc/consume_chat_quota`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': supabaseAnonKey,
+        'Authorization': `Bearer ${accessToken}`
+      },
+      body: '{}'
+    });
+
+    if (rpcRes.status === 401 || rpcRes.status === 403) {
+      return { errorResponse: jsonResponse({ error: 'Sesi login Google sudah berakhir. Silakan masuk ulang.' }, 401) };
+    }
+
+    if (!rpcRes.ok) {
+      return { errorResponse: jsonResponse({ error: 'Gagal memvalidasi kuota pesan di server.' }, 500) };
+    }
+
+    const quota = await rpcRes.json();
+    if (!quota || quota.allowed === false) {
+      return {
+        errorResponse: jsonResponse({
+          error: 'Kuota 15 pesan per 12 jam sudah habis. Tunggu waktu reset berakhir ya!',
+          code: 'RATE_LIMIT_EXCEEDED',
+          quota
+        }, 429)
+      };
+    }
+
+    return { quota };
+  } catch (err) {
+    return { errorResponse: jsonResponse({ error: 'Tidak dapat memverifikasi kuota ke server Supabase.' }, 502) };
+  }
+}
+
 export async function onRequest(context) {
   const { request } = context;
 
@@ -162,19 +237,14 @@ export async function onRequest(context) {
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
         'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        'Access-Control-Expose-Headers': 'X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset, X-RateLimit-WindowStart, X-Served-Model',
         'X-Content-Type-Options': 'nosniff'
       }
     });
   }
 
   if (request.method !== 'POST') {
-    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
-      status: 405,
-      headers: {
-        'Content-Type': 'application/json; charset=utf-8',
-        'X-Content-Type-Options': 'nosniff'
-      }
-    });
+    return jsonResponse({ error: 'Method not allowed' }, 405);
   }
 
   const env = context.env || {};
@@ -200,13 +270,7 @@ export async function onRequest(context) {
   try {
     data = await request.json();
   } catch (e) {
-    return new Response(JSON.stringify({ error: 'Invalid JSON payload' }), {
-      status: 400,
-      headers: {
-        'Content-Type': 'application/json; charset=utf-8',
-        'X-Content-Type-Options': 'nosniff'
-      }
-    });
+    return jsonResponse({ error: 'Invalid JSON payload' }, 400);
   }
 
   const rawTeacher = typeof data.teacherId === 'string' ? data.teacherId : 'math';
@@ -217,24 +281,19 @@ export async function onRequest(context) {
   const userSelectedModel = typeof data.selectedModel === 'string' ? data.selectedModel.trim() : '';
 
   if (!userMessage) {
-    return new Response(JSON.stringify({ error: 'Pesan pengguna tidak boleh kosong.' }), {
-      status: 400,
-      headers: {
-        'Content-Type': 'application/json; charset=utf-8',
-        'X-Content-Type-Options': 'nosniff'
-      }
-    });
+    return jsonResponse({ error: 'Pesan pengguna tidak boleh kosong.' }, 400);
   }
 
   if (userMessage.length > 1000) {
-    return new Response(JSON.stringify({ error: 'Pesan terlalu panjang (maksimal 1.000 karakter).' }), {
-      status: 400,
-      headers: {
-        'Content-Type': 'application/json; charset=utf-8',
-        'X-Content-Type-Options': 'nosniff'
-      }
-    });
+    return jsonResponse({ error: 'Pesan terlalu panjang (maksimal 1.000 karakter).' }, 400);
   }
+
+  // Server-Side Supabase Auth & 15-Chat / 12-Hour Rate Limit Enforcement
+  const quotaCheck = await verifyUserAndConsumeQuota(request, env);
+  if (quotaCheck.errorResponse) {
+    return quotaCheck.errorResponse;
+  }
+  const quotaHeaders = buildRateLimitHeaders(quotaCheck.quota);
 
   // Server-Side Content Safety Guardrail (OWASP LLM01)
   const safetyWarning = checkServerSafety(userMessage);
@@ -247,7 +306,8 @@ export async function onRequest(context) {
         'Cache-Control': 'no-cache',
         'Connection': 'keep-alive',
         'Access-Control-Allow-Origin': '*',
-        'X-Content-Type-Options': 'nosniff'
+        'X-Content-Type-Options': 'nosniff',
+        ...quotaHeaders
       }
     });
   }
@@ -263,7 +323,8 @@ export async function onRequest(context) {
         'Cache-Control': 'no-cache',
         'Connection': 'keep-alive',
         'Access-Control-Allow-Origin': '*',
-        'X-Content-Type-Options': 'nosniff'
+        'X-Content-Type-Options': 'nosniff',
+        ...quotaHeaders
       }
     });
   }
@@ -324,7 +385,8 @@ export async function onRequest(context) {
           'Cache-Control': 'no-cache',
           'Connection': 'keep-alive',
           'Access-Control-Allow-Origin': '*',
-          'X-Served-Model': currentModel
+          'X-Served-Model': currentModel,
+          ...quotaHeaders
         }
       });
     } catch (e) {
@@ -341,7 +403,8 @@ export async function onRequest(context) {
       'Content-Type': 'text/event-stream; charset=utf-8',
       'Cache-Control': 'no-cache',
       'Connection': 'keep-alive',
-      'Access-Control-Allow-Origin': '*'
+      'Access-Control-Allow-Origin': '*',
+      ...quotaHeaders
     }
   });
 }
