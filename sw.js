@@ -1,8 +1,10 @@
-// Codi AI PWA Service Worker v3.6.0 (Teacher Select Header Consistency)
-const CACHE_NAME = 'codi-ai-cache-v36';
+// Codi AI PWA Service Worker v3.7.0 (Legal Pages for codi.ai.id)
+const CACHE_NAME = 'codi-ai-cache-v37';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
+  '/privacy-policy',
+  '/terms-of-service',
   '/css/style.css',
   '/css/workspace.css',
   '/js/app.js',

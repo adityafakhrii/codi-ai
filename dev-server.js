@@ -174,7 +174,16 @@ function isStaticPathAllowed(reqPath) {
   }
 
   // 3. Allowed root public assets
-  if (reqPath === '/index.html' || reqPath === '/sw.js' || reqPath === '/manifest.json' || reqPath === '/favicon.ico' || reqPath === '/robots.txt' || reqPath === '/sitemap.xml') {
+  if (
+    reqPath === '/index.html' ||
+    reqPath === '/privacy-policy.html' ||
+    reqPath === '/terms-of-service.html' ||
+    reqPath === '/sw.js' ||
+    reqPath === '/manifest.json' ||
+    reqPath === '/favicon.ico' ||
+    reqPath === '/robots.txt' ||
+    reqPath === '/sitemap.xml'
+  ) {
     return true;
   }
 
@@ -730,6 +739,10 @@ const server = http.createServer(async (req, res) => {
   let reqPath = decodeURI(pathname);
   if (reqPath === '/') {
     reqPath = '/index.html';
+  } else if (reqPath === '/privacy-policy') {
+    reqPath = '/privacy-policy.html';
+  } else if (reqPath === '/terms-of-service') {
+    reqPath = '/terms-of-service.html';
   }
 
   // Strict allowlist: blocks .env, .git, server.js, package.json, *.md, hidden files
