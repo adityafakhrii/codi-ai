@@ -181,7 +181,13 @@ function buildRateLimitHeaders(quota) {
 
 async function verifyUserAndConsumeQuota(request, env) {
   const supabaseUrl = (env.SUPABASE_URL || env.NEXT_PUBLIC_SUPABASE_URL || '').trim().replace(/\/+$/, '');
-  const supabaseAnonKey = (env.SUPABASE_ANON_KEY || env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '').trim();
+  const supabaseAnonKey = (
+    env.SUPABASE_ANON_KEY ||
+    env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+    env.SUPABASE_PUBLISHABLE_KEY ||
+    env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
+    ''
+  ).trim();
   const authHeader = request.headers.get('authorization') || '';
   const match = authHeader.match(/^Bearer\s+(.+)$/i);
   const accessToken = match ? match[1].trim() : '';

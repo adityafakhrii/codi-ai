@@ -1,5 +1,5 @@
-// Codi AI PWA Service Worker v3.1.0 (Final Beta - Supabase Auth & DB Ready)
-const CACHE_NAME = 'codi-ai-cache-v31';
+// Codi AI PWA Service Worker v3.4.0 (Stop Icon & Header Quota Pill)
+const CACHE_NAME = 'codi-ai-cache-v34';
 const STATIC_ASSETS = [
   '/',
   '/index.html',

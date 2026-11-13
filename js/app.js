@@ -96,6 +96,23 @@ document.addEventListener('DOMContentLoaded', () => {
   window.showToast = showToast;
   window.showCodiToast = showToast;
 
+  function trapFocusInModal(e, containerEl) {
+    if (e.key !== 'Tab' || !containerEl) return;
+    const focusables = Array.from(
+      containerEl.querySelectorAll('button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])')
+    ).filter((el) => el.offsetParent !== null);
+    if (focusables.length === 0) return;
+    const first = focusables[0];
+    const last = focusables[focusables.length - 1];
+    if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault();
+      first.focus();
+    }
+  }
+
   function showCustomConfirm({
     title = 'Konfirmasi',
     message = 'Apakah adik yakin?',
@@ -165,7 +182,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.key === 'Escape') {
           e.preventDefault();
           cleanup(false);
+          return;
         }
+        trapFocusInModal(e, backdrop);
       }
 
       confirmBtn.addEventListener('click', onConfirm);
@@ -240,7 +259,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.key === 'Escape' || e.key === 'Enter') {
           e.preventDefault();
           cleanup();
+          return;
         }
+        trapFocusInModal(e, backdrop);
       }
 
       confirmBtn.addEventListener('click', onConfirm);
@@ -558,10 +579,20 @@ document.addEventListener('DOMContentLoaded', () => {
     return `${seconds} detik`;
   }
 
+  function syncSendButtonState() {
+    const sendBtnEl = document.getElementById('btn-dock-send');
+    if (!sendBtnEl) return;
+    const remaining = Math.max(0, Number(quotaState.remaining ?? (Number(quotaState.limit) || 15)));
+    const hasText = Boolean(textInput && textInput.value.trim().length > 0);
+    sendBtnEl.disabled = remaining <= 0 || isAiResponding || !hasText;
+  }
+
   function renderQuotaUI() {
     const quotaBar = document.getElementById('workspace-quota-bar');
     const countText = document.getElementById('quota-count-text');
     const timerText = document.getElementById('quota-timer-text');
+    const navQuotaPill = document.getElementById('nav-quota-pill');
+    const navQuotaCount = document.getElementById('nav-quota-count');
     const limit = Number(quotaState.limit) || 15;
     let remaining = Math.max(0, Number(quotaState.remaining ?? limit));
     let resetAtMs = quotaState.resetAt ? new Date(quotaState.resetAt).getTime() : null;
@@ -581,26 +612,42 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const isExhausted = remaining <= 0;
     const isWarning = remaining > 0 && remaining <= 3;
+    const countdownLabel = resetAtMs ? formatCountdownDuration(resetAtMs - Date.now()) : '';
+
+    const detailLabel = !resetAtMs
+      ? 'Siklus 12 jam dimulai saat chat pertama'
+      : isExhausted
+      ? `Istirahat sebentar ya - reset otomatis dalam ${countdownLabel}`
+      : `Reset dalam ${countdownLabel}`;
+
+    const summaryTitle = isExhausted
+      ? `Kuota habis (0/${limit}) - ${detailLabel}`
+      : `${remaining}/${limit} chat tersisa - ${detailLabel}`;
+
+    if (navQuotaPill) {
+      navQuotaPill.classList.toggle('is-exhausted', isExhausted);
+      navQuotaPill.classList.toggle('is-warning', isWarning);
+      navQuotaPill.setAttribute('title', summaryTitle);
+      navQuotaPill.setAttribute('aria-label', summaryTitle);
+    }
+    if (navQuotaCount) {
+      navQuotaCount.textContent = `${remaining}/${limit}`;
+    }
 
     if (quotaBar) {
+      quotaBar.classList.toggle('is-visible', isWarning || isExhausted);
       quotaBar.classList.toggle('is-exhausted', isExhausted);
       quotaBar.classList.toggle('is-warning', isWarning);
     }
 
     if (countText) {
-      countText.textContent = `${remaining}/${limit} chat tersisa`;
+      countText.textContent = isExhausted
+        ? 'Kuota habis (0/15)'
+        : `${remaining}/${limit} chat tersisa`;
     }
 
-    const countdownLabel = resetAtMs ? formatCountdownDuration(resetAtMs - Date.now()) : '';
-
     if (timerText) {
-      if (!resetAtMs) {
-        timerText.textContent = 'Siklus 12 jam dimulai saat chat pertama';
-      } else if (isExhausted) {
-        timerText.textContent = `Kuota habis - Reset dalam ${countdownLabel}`;
-      } else {
-        timerText.textContent = `Reset dalam ${countdownLabel}`;
-      }
+      timerText.textContent = detailLabel;
     }
 
     if (chatForm) {
@@ -609,13 +656,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (textInput) {
       textInput.disabled = isExhausted;
       textInput.placeholder = isExhausted
-        ? `Kuota 15 chat habis. Reset dalam ${countdownLabel || 'beberapa saat'}...`
+        ? `Belajar hari ini cukup dulu ya! Kuota kembali dalam ${countdownLabel || 'beberapa saat'}...`
         : 'Tanya soal pelajaran ke Codi...';
     }
-    const sendBtnEl = document.getElementById('btn-dock-send');
-    if (sendBtnEl) {
-      sendBtnEl.disabled = isExhausted;
-    }
+    syncSendButtonState();
     const micBtnEl = document.getElementById('btn-dock-mic');
     if (micBtnEl) {
       micBtnEl.disabled = isExhausted;
@@ -625,6 +669,21 @@ document.addEventListener('DOMContentLoaded', () => {
         chip.disabled = isExhausted;
       });
     }
+  }
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && currentUser && currentSession) {
+      fetchUserQuota();
+    }
+  });
+
+  const navQuotaPillBtn = document.getElementById('nav-quota-pill');
+  if (navQuotaPillBtn) {
+    navQuotaPillBtn.addEventListener('click', () => {
+      const msg = navQuotaPillBtn.getAttribute('title') || '15/15 chat tersisa';
+      const tone = (quotaState.remaining ?? 15) <= 0 ? 'warning' : 'info';
+      showToast(msg, tone);
+    });
   }
 
   function startQuotaTimer() {
@@ -721,27 +780,49 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // 6. Authentication Modal Controls
+  let lastFocusedBeforeAuthModal = null;
+
   function openAuthModal() {
-    if (authModal) {
-      authModal.classList.add('is-open');
-    }
+    if (!authModal) return;
+    lastFocusedBeforeAuthModal = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    authModal.classList.add('is-open');
+    authModal.setAttribute('aria-hidden', 'false');
+    requestAnimationFrame(() => {
+      if (btnGoogleAction && !btnGoogleAction.disabled) {
+        btnGoogleAction.focus();
+      } else if (btnCloseAuthModal) {
+        btnCloseAuthModal.focus();
+      }
+    });
   }
 
   function closeAuthModal() {
-    if (authModal) {
-      authModal.classList.remove('is-open');
+    if (!authModal) return;
+    authModal.classList.remove('is-open');
+    authModal.setAttribute('aria-hidden', 'true');
+    if (lastFocusedBeforeAuthModal && typeof lastFocusedBeforeAuthModal.focus === 'function') {
+      lastFocusedBeforeAuthModal.focus();
     }
+    lastFocusedBeforeAuthModal = null;
   }
 
   const headerLoginBtn = document.getElementById('header-login-btn');
-  const mobileLoginTrigger = document.getElementById('mobile-login-trigger');
   const btnCloseAuthModal = document.getElementById('btn-close-auth-modal');
   const btnGoogleAction = document.getElementById('btn-google-login-action');
   const googleLoginBtnLabel = document.getElementById('google-login-btn-label');
 
   if (headerLoginBtn) headerLoginBtn.addEventListener('click', openAuthModal);
-  if (mobileLoginTrigger) mobileLoginTrigger.addEventListener('click', openAuthModal);
   if (btnCloseAuthModal) btnCloseAuthModal.addEventListener('click', closeAuthModal);
+
+  document.addEventListener('keydown', (e) => {
+    if (!authModal || !authModal.classList.contains('is-open')) return;
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      closeAuthModal();
+      return;
+    }
+    trapFocusInModal(e, authModal);
+  });
 
   if (authModal) {
     authModal.addEventListener('click', (e) => {
@@ -785,6 +866,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!session || !session.user) return;
     currentSession = session;
     currentUser = mapSupabaseUser(session.user);
+    document.documentElement.classList.remove('is-oauth-callback');
     document.documentElement.classList.add('has-active-session');
 
     // Bersihkan URL callback OAuth (?code=... atau #access_token=...) setelah terautentikasi
@@ -792,36 +874,46 @@ document.addEventListener('DOMContentLoaded', () => {
       window.history.replaceState({}, document.title, window.location.pathname);
     }
 
+    let pendingTeacher = '';
+    let savedView = 'teacherSelect';
     try {
       const storedTeacher = localStorage.getItem('codi_selected_teacher');
       if (storedTeacher && ['math', 'general', 'pancasila'].includes(storedTeacher)) {
         currentTeacher = storedTeacher;
       }
+      pendingTeacher = localStorage.getItem('codi_pending_teacher') || '';
+      if (pendingTeacher) {
+        localStorage.removeItem('codi_pending_teacher');
+      }
+      savedView = localStorage.getItem('codi_active_view') || 'teacherSelect';
     } catch (e) {}
 
     updateUserUI();
     closeAuthModal();
 
-    const loadedSessions = await loadUserSessionsFromDb();
-    chatSessions = loadedSessions;
-    if (chatSessions.length > 0) {
-      activeSessionId = chatSessions[0].id;
-    } else {
-      activeSessionId = null;
-    }
+    const validTeachers = window.CodiAI && window.CodiAI.TEACHER_PROFILES;
+    const hasPendingTeacher = Boolean(pendingTeacher && validTeachers && validTeachers[pendingTeacher]);
 
-    await fetchUserQuota();
+    // Tampilkan Pilih Guru Pendamping Belajar seketika tanpa menunggu fetch DB/quota selesai
+    if (!hasPendingTeacher && (isFreshLogin || savedView !== 'chatWorkspace')) {
+      showView('teacherSelect');
+    }
 
     if (isFreshLogin) {
       showToast(`Selamat datang, ${currentUser.name}!`, 'success');
     }
 
-    let savedView = 'teacherSelect';
-    try {
-      savedView = localStorage.getItem('codi_active_view') || 'teacherSelect';
-    } catch (e) {}
+    const [loadedSessions] = await Promise.all([
+      loadUserSessionsFromDb(),
+      fetchUserQuota()
+    ]);
 
-    if (savedView === 'chatWorkspace' && activeSessionId && chatSessions.some((s) => s.id === activeSessionId)) {
+    chatSessions = loadedSessions;
+    activeSessionId = chatSessions.length > 0 ? chatSessions[0].id : null;
+
+    if (hasPendingTeacher) {
+      enterTeacherWorkspace(pendingTeacher);
+    } else if (!isFreshLogin && savedView === 'chatWorkspace' && activeSessionId && chatSessions.some((s) => s.id === activeSessionId)) {
       switchSession(activeSessionId);
       showView('chatWorkspace');
     } else {
@@ -862,8 +954,8 @@ document.addEventListener('DOMContentLoaded', () => {
     btnGoogleAction.addEventListener('click', async () => {
       if (!supabaseConfigured || !supabaseClient) {
         showCustomAlert({
-          title: 'Konfigurasi Supabase Diperlukan',
-          message: 'Autentikasi Google membutuhkan SUPABASE_URL dan SUPABASE_ANON_KEY di server (.env / Environment Variables).',
+          title: 'Layanan Masuk Belum Tersedia',
+          message: 'Layanan login Google sedang belum siap sementara. Silakan hubungi pengelola Codi AI ya!',
           type: 'warning'
         });
         return;
@@ -1148,7 +1240,8 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   if (btnRailTeacher) {
     btnRailTeacher.addEventListener('click', () => {
-      enterTeacherWorkspace(getNextTeacher(currentTeacher));
+      stopCurrentMessageAudio();
+      showView('teacherSelect');
     });
   }
   if (sidebarBackdrop) {
@@ -1435,6 +1528,10 @@ document.addEventListener('DOMContentLoaded', () => {
       groupHeader.textContent = groupName;
       sidebarList.appendChild(groupHeader);
 
+      const groupList = document.createElement('ul');
+      groupList.className = 'history-group-list';
+      groupList.setAttribute('aria-label', `Riwayat ${groupName}`);
+
       items.forEach((session) => {
         const isSelected = session.id === activeSessionId;
         const teacherProfile = window.CodiAI && window.CodiAI.TEACHER_PROFILES ? window.CodiAI.TEACHER_PROFILES[session.teacherId] : null;
@@ -1444,34 +1541,36 @@ document.addEventListener('DOMContentLoaded', () => {
           ? dateObj.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
           : '';
 
-        const itemDiv = document.createElement('div');
-        itemDiv.className = `history-session-item ${isSelected ? 'is-active' : ''}`;
-        itemDiv.setAttribute('role', 'button');
-        itemDiv.setAttribute('tabindex', '0');
-        itemDiv.setAttribute('data-id', session.id);
+        const itemLi = document.createElement('li');
+        itemLi.className = `history-session-item ${isSelected ? 'is-active' : ''}`;
+        itemLi.setAttribute('data-id', session.id);
 
-        itemDiv.innerHTML = `
-          <div class="history-item-left">
-            <span class="history-item-title">${escapeHtml(session.title)}</span>
-            <div class="history-item-meta">
-              <span class="history-teacher-badge ${session.teacherId === 'general' ? 'is-general' : session.teacherId === 'pancasila' ? 'is-pancasila' : ''}">${teacherName}</span>
-              <span>${timeStr}</span>
+        itemLi.innerHTML = `
+          <button type="button" class="history-session-select-btn" aria-current="${isSelected ? 'true' : 'false'}">
+            <div class="history-item-left">
+              <span class="history-item-title">${escapeHtml(session.title)}</span>
+              <div class="history-item-meta">
+                <span class="history-teacher-badge ${session.teacherId === 'general' ? 'is-general' : session.teacherId === 'pancasila' ? 'is-pancasila' : ''}">${teacherName}</span>
+                <span>${timeStr}</span>
+              </div>
             </div>
-          </div>
-          <button type="button" class="btn-delete-session" data-delete-id="${session.id}" aria-label="Hapus sesi" title="Hapus sesi obrolan">
+          </button>
+          <button type="button" class="btn-delete-session" data-delete-id="${session.id}" aria-label="Hapus obrolan ${escapeHtml(session.title)}" title="Hapus sesi obrolan">
             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trash-2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>
           </button>
         `;
 
-        itemDiv.addEventListener('click', (e) => {
-          if (e.target.closest('.btn-delete-session')) return;
-          switchSession(session.id);
-          if (window.innerWidth < 860) {
-            closeSidebarDrawer();
-          }
-        });
+        const selectBtn = itemLi.querySelector('.history-session-select-btn');
+        if (selectBtn) {
+          selectBtn.addEventListener('click', () => {
+            switchSession(session.id);
+            if (window.innerWidth < 768) {
+              collapseSidebar();
+            }
+          });
+        }
 
-        const deleteBtn = itemDiv.querySelector('.btn-delete-session');
+        const deleteBtn = itemLi.querySelector('.btn-delete-session');
         if (deleteBtn) {
           deleteBtn.addEventListener('click', async (e) => {
             e.stopPropagation();
@@ -1489,8 +1588,10 @@ document.addEventListener('DOMContentLoaded', () => {
           });
         }
 
-        sidebarList.appendChild(itemDiv);
+        groupList.appendChild(itemLi);
       });
+
+      sidebarList.appendChild(groupList);
     });
 
     refreshIcons();
@@ -1509,6 +1610,39 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   let isAiResponding = false;
+  let currentChatAbortController = null;
+
+  function autoResizeTextInput() {
+    if (!textInput) return;
+    textInput.style.height = 'auto';
+    const nextHeight = Math.min(textInput.scrollHeight, 140);
+    if (nextHeight > 0) {
+      textInput.style.height = `${nextHeight}px`;
+    }
+  }
+
+  function setDockStreamingState(streaming) {
+    const sendBtnEl = document.getElementById('btn-dock-send');
+    const stopBtnEl = document.getElementById('btn-dock-stop');
+    if (stopBtnEl) {
+      stopBtnEl.style.display = streaming ? 'inline-flex' : 'none';
+    }
+    if (sendBtnEl) {
+      sendBtnEl.style.display = streaming ? 'none' : 'flex';
+    }
+    if (!streaming) {
+      syncSendButtonState();
+    }
+  }
+
+  const btnDockStop = document.getElementById('btn-dock-stop');
+  if (btnDockStop) {
+    btnDockStop.addEventListener('click', () => {
+      if (currentChatAbortController) {
+        currentChatAbortController.abort();
+      }
+    });
+  }
 
   function stopCurrentMessageAudio() {
     if (window.CodiSpeech) {
@@ -1539,8 +1673,8 @@ document.addEventListener('DOMContentLoaded', () => {
       .join(' ');
   }
 
-  // Model Picker State (Persisted in localStorage)
-  let selectedModel = localStorage.getItem('codi_selected_model') || 'auto';
+  // Internal Smart Auto-Model Routing (No technical AI picker exposed in UI)
+  let selectedModel = 'auto';
   let availableModels = [];
 
   function updateModelPickerUI() {
@@ -1699,22 +1833,18 @@ document.addEventListener('DOMContentLoaded', () => {
       btn.classList.add('is-playing');
       btn.setAttribute('aria-label', 'Hentikan suara');
       btn.setAttribute('title', 'Hentikan suara');
-      btn.innerHTML = isActionBubble
-        ? `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="none" class="lucide lucide-square"><rect width="18" height="18" x="3" y="3" rx="2"/></svg>`
-        : `
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="none" class="lucide lucide-square"><rect width="18" height="18" x="3" y="3" rx="2"/></svg>
-          <span>Berhenti</span>
-        `;
+      btn.innerHTML = `
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="none" class="lucide lucide-square" aria-hidden="true"><rect width="18" height="18" x="3" y="3" rx="2"/></svg>
+        <span>Berhenti</span>
+      `;
     } else {
       btn.classList.remove('is-playing');
       btn.setAttribute('aria-label', 'Dengarkan suara');
       btn.setAttribute('title', 'Dengarkan dengan suara');
-      btn.innerHTML = isActionBubble
-        ? `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-volume-2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>`
-        : `
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-volume-2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
-          <span>Dengarkan</span>
-        `;
+      btn.innerHTML = `
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-volume-2" aria-hidden="true"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
+        <span>Dengarkan</span>
+      `;
     }
   }
 
@@ -1896,87 +2026,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const bar = document.createElement('div');
     bar.className = 'chat-bubble-actions';
 
-    // 1. Salin Jawaban (Copy)
-    const copyBtn = document.createElement('button');
-    copyBtn.type = 'button';
-    copyBtn.className = 'btn-action-bubble btn-action-copy';
-    copyBtn.setAttribute('aria-label', 'Salin jawaban ke papan klip');
-    copyBtn.setAttribute('title', 'Salin jawaban');
-    copyBtn.innerHTML = `
-      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-copy"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
-    `;
-
-    copyBtn.addEventListener('click', () => {
-      const rawText = msg.text || '';
-      const cleanPlain = rawText.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
-      navigator.clipboard.writeText(cleanPlain).then(() => {
-        copyBtn.classList.add('is-copied');
-        copyBtn.innerHTML = `
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-check"><polyline points="20 6 9 17 4 12"/></svg>
-        `;
-        showToast('Jawaban berhasil disalin ke papan klip');
-        setTimeout(() => {
-          copyBtn.classList.remove('is-copied');
-          copyBtn.innerHTML = `
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-copy"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
-          `;
-        }, 1600);
-      }).catch(() => {
-        showToast('Gagal menyalin jawaban');
-      });
-    });
-    bar.appendChild(copyBtn);
-
-    // 2. Tombol Bagus (Thumbs Up)
-    const upBtn = document.createElement('button');
-    upBtn.type = 'button';
-    upBtn.className = `btn-action-bubble btn-action-thumb-up ${msg.feedback === 'up' ? 'is-active-up' : ''}`;
-    upBtn.setAttribute('aria-label', 'Bagus dan bermanfaat');
-    upBtn.setAttribute('title', 'Jawaban bagus dan bermanfaat');
-    upBtn.innerHTML = `
-      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-thumbs-up"><path d="M7 10v12"/><path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h3"/><path d="M7 10l5-6a2 2 0 0 1 3 1.88z"/></svg>
-    `;
-
-    // 3. Tombol Kurang Bagus (Thumbs Down)
-    const downBtn = document.createElement('button');
-    downBtn.type = 'button';
-    downBtn.className = `btn-action-bubble btn-action-thumb-down ${msg.feedback === 'down' ? 'is-active-down' : ''}`;
-    downBtn.setAttribute('aria-label', 'Kurang tepat atau membingungkan');
-    downBtn.setAttribute('title', 'Jawaban kurang tepat');
-    downBtn.innerHTML = `
-      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-thumbs-down"><path d="M17 14V2"/><path d="M9 18.12 10 14H4.17a2 2 0 0 1-1.92-2.56l2.33-8A2 2 0 0 1 6.5 2H20a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-3"/><path d="M17 14l-5 6a2 2 0 0 1-3-1.88z"/></svg>
-    `;
-
-    upBtn.addEventListener('click', () => {
-      if (upBtn.classList.contains('is-active-up')) {
-        upBtn.classList.remove('is-active-up');
-        msg.feedback = null;
-      } else {
-        upBtn.classList.add('is-active-up');
-        downBtn.classList.remove('is-active-down');
-        msg.feedback = 'up';
-        showToast('Terima kasih atas tanggapan positif Anda!');
-      }
-      saveChatSessions();
-    });
-
-    downBtn.addEventListener('click', () => {
-      if (downBtn.classList.contains('is-active-down')) {
-        downBtn.classList.remove('is-active-down');
-        msg.feedback = null;
-      } else {
-        downBtn.classList.add('is-active-down');
-        upBtn.classList.remove('is-active-up');
-        msg.feedback = 'down';
-        showToast('Terima kasih masukannya, kami akan tingkatkan kualitas jawaban.');
-      }
-      saveChatSessions();
-    });
-
-    bar.appendChild(upBtn);
-    bar.appendChild(downBtn);
-
-    // 4. Tombol Baca Suara (Speaker)
+    // 1. Baca Suara (Dengarkan)
     const speakBtn = document.createElement('button');
     speakBtn.type = 'button';
     speakBtn.className = 'btn-action-bubble btn-action-speaker';
@@ -1990,21 +2040,54 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     bar.appendChild(speakBtn);
 
-    // 5. Tombol Buat Ulang (Regenerate)
+    // 2. Salin Jawaban
+    const copyBtn = document.createElement('button');
+    copyBtn.type = 'button';
+    copyBtn.className = 'btn-action-bubble btn-action-copy';
+    copyBtn.setAttribute('aria-label', 'Salin jawaban');
+    copyBtn.setAttribute('title', 'Salin jawaban');
+    const copyDefaultHtml = `
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-copy" aria-hidden="true"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+      <span>Salin</span>
+    `;
+    copyBtn.innerHTML = copyDefaultHtml;
+
+    copyBtn.addEventListener('click', () => {
+      const rawText = msg.text || '';
+      const cleanPlain = rawText.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+      navigator.clipboard.writeText(cleanPlain).then(() => {
+        copyBtn.classList.add('is-copied');
+        copyBtn.innerHTML = `
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-check" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+          <span>Tersalin</span>
+        `;
+        showToast('Jawaban berhasil disalin!');
+        setTimeout(() => {
+          copyBtn.classList.remove('is-copied');
+          copyBtn.innerHTML = copyDefaultHtml;
+        }, 1600);
+      }).catch(() => {
+        showToast('Gagal menyalin jawaban');
+      });
+    });
+    bar.appendChild(copyBtn);
+
+    // 3. Buat Ulang Jawaban (Ulangi)
     const regenBtn = document.createElement('button');
     regenBtn.type = 'button';
     regenBtn.className = 'btn-action-bubble btn-action-regenerate';
-    regenBtn.setAttribute('aria-label', 'Buat ulang respons AI');
-    regenBtn.setAttribute('title', 'Buat ulang jawaban ini');
+    regenBtn.setAttribute('aria-label', 'Ulangi penjelasan guru');
+    regenBtn.setAttribute('title', 'Minta penjelasan ulang');
     regenBtn.innerHTML = `
-      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-rotate-cw"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-rotate-cw" aria-hidden="true"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>
+      <span>Ulangi</span>
     `;
 
     regenBtn.addEventListener('click', () => {
       if (isAiResponding) return;
       if (quotaState.remaining <= 0) {
         renderQuotaUI();
-        showToast('Kuota 15 chat habis. Tunggu waktu reset berakhir ya!', 'warning');
+        showToast('Kuota 15 chat habis. Istirahat sebentar sampai kuota terisi kembali ya!', 'warning');
         return;
       }
       const session = getActiveSession();
@@ -2019,7 +2102,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       if (!promptToReRun) {
-        showToast('Tidak ada pertanyaan sebelumnya untuk dibuat ulang.');
+        showToast('Tidak ada pertanyaan sebelumnya untuk diulang.');
         return;
       }
 
@@ -2029,21 +2112,9 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       renderChatStream();
 
-      showToast('Membuat ulang respons AI...');
       handleUserSubmit(promptToReRun, true);
     });
     bar.appendChild(regenBtn);
-
-    // 6. Label Model yang Digunakan
-    const modelTag = document.createElement('span');
-    modelTag.className = 'chat-bubble-model-tag';
-    modelTag.setAttribute('title', 'Model AI yang memproses respons ini');
-    const displayModel = formatModelLabel(msg.model || selectedModel);
-    modelTag.innerHTML = `
-      <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-sparkles"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/></svg>
-      <span>${displayModel}</span>
-    `;
-    bar.appendChild(modelTag);
 
     return bar;
   }
@@ -2429,7 +2500,16 @@ document.addEventListener('DOMContentLoaded', () => {
       updateActiveSessionHeader(session);
     }
 
-    if (textInput) textInput.value = '';
+    const prevErrorRow = document.getElementById('chat-inline-error-row');
+    if (prevErrorRow && prevErrorRow.parentNode) {
+      prevErrorRow.parentNode.removeChild(prevErrorRow);
+    }
+
+    if (textInput) {
+      textInput.value = '';
+      autoResizeTextInput();
+      syncSendButtonState();
+    }
 
     function rollbackPendingUserMessage() {
       if (!isRegen && pendingUserMsg) {
@@ -2442,12 +2522,19 @@ document.addEventListener('DOMContentLoaded', () => {
         renderChatStream();
         renderSidebarSessions();
         updateActiveSessionHeader(session);
-        if (textInput) textInput.value = cleanText;
+        if (textInput) {
+          textInput.value = cleanText;
+          autoResizeTextInput();
+          syncSendButtonState();
+        }
       }
     }
 
     // 2. Set Thinking State & Show Typing Indicator Dots
     isAiResponding = true;
+    const abortController = new AbortController();
+    currentChatAbortController = abortController;
+    setDockStreamingState(true);
     updateMascotStateUI('Codi sedang berpikir...', 'thinking');
 
     const indicatorRow = document.createElement('div');
@@ -2488,12 +2575,24 @@ document.addEventListener('DOMContentLoaded', () => {
     cursorSpan.className = 'streaming-cursor';
     cursorSpan.setAttribute('aria-hidden', 'true');
 
+    textSpan.appendChild(cursorSpan);
     contentDiv.appendChild(textSpan);
-    contentDiv.appendChild(cursorSpan);
     bubble.appendChild(contentDiv);
     aiRow.appendChild(bubble);
 
     let fullText = '';
+
+    function appendInlineCursor() {
+      if (cursorSpan.parentNode) {
+        cursorSpan.parentNode.removeChild(cursorSpan);
+      }
+      const lastEl = textSpan.lastElementChild;
+      if (lastEl && /^(P|LI|BLOCKQUOTE|H[1-6])$/.test(lastEl.tagName)) {
+        lastEl.appendChild(cursorSpan);
+      } else {
+        textSpan.appendChild(cursorSpan);
+      }
+    }
 
     function finalizeAiResponse() {
       if (cursorSpan.parentNode) {
@@ -2515,7 +2614,7 @@ document.addEventListener('DOMContentLoaded', () => {
         persisted: false
       };
 
-      // Append ChatGPT-style action bar
+      // Append simplified 3-action bar
       const actionBar = createAiActionBar(completedAiMsg, session.messages.length, teacherName);
       bubble.appendChild(actionBar);
 
@@ -2526,28 +2625,80 @@ document.addEventListener('DOMContentLoaded', () => {
       updateActiveSessionHeader(session);
 
       isAiResponding = false;
+      currentChatAbortController = null;
+      setDockStreamingState(false);
       updateMascotStateUI('Codi Siap Menjawab', 'idle');
       scrollChatToBottom(true);
+
+      const srAnnouncer = document.getElementById('chat-sr-announcer');
+      if (srAnnouncer) {
+        const plainReply = fullText.replace(/[*_`#>]/g, '').replace(/\s+/g, ' ').trim();
+        srAnnouncer.textContent = `${teacherName} menjawab: ${plainReply.slice(0, 260)}`;
+      }
 
       // Perbarui saran pertanyaan cepat secara dinamis mengikuti alur chat
       renderQuickChips(session);
       renderQuotaUI();
     }
 
-    function handleChatRequestError(errMessage) {
+    function renderInlineRetryCard(friendlyMsg) {
+      if (!chatFeed) return;
+      const errRow = document.createElement('div');
+      errRow.className = 'chat-bubble-row from-ai';
+      errRow.id = 'chat-inline-error-row';
+      errRow.innerHTML = `
+        <div class="chat-bubble chat-error-card" role="status">
+          <div class="chat-bubble-sender">${escapeHtml(teacherName)}</div>
+          <p class="chat-para">${escapeHtml(friendlyMsg)}</p>
+          <div class="chat-error-actions">
+            <button type="button" class="btn-retry-chat">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-rotate-cw" aria-hidden="true"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>
+              <span>Coba Lagi</span>
+            </button>
+          </div>
+        </div>
+      `;
+      const retryBtn = errRow.querySelector('.btn-retry-chat');
+      if (retryBtn) {
+        retryBtn.addEventListener('click', () => {
+          if (errRow.parentNode) errRow.parentNode.removeChild(errRow);
+          handleUserSubmit(cleanText, isRegen);
+        });
+      }
+      chatFeed.appendChild(errRow);
+      scrollChatToBottom(true);
+    }
+
+    function handleChatRequestError(errMessage, wasAborted = false) {
       if (indicatorRow.parentNode) {
         indicatorRow.parentNode.removeChild(indicatorRow);
       }
+      if (aiRow.parentNode) {
+        aiRow.parentNode.removeChild(aiRow);
+      }
       isAiResponding = false;
+      currentChatAbortController = null;
+      setDockStreamingState(false);
       updateMascotStateUI('Codi Siap Menjawab', 'idle');
+
+      if (wasAborted) {
+        rollbackPendingUserMessage();
+        showToast('Jawaban dihentikan.');
+        return;
+      }
+
       rollbackPendingUserMessage();
-      showToast(errMessage || 'Gagal terhubung ke server AI. Periksa koneksi internet dan coba lagi.', 'danger');
+      const safeMessage = errMessage && !/HTTP\s*\d+/i.test(errMessage)
+        ? errMessage
+        : 'Koneksi sempat terputus sebelum Codi selesai menjawab. Yuk coba tanya lagi!';
+      renderInlineRetryCard(safeMessage);
     }
 
     try {
       const activeToken = currentSession ? currentSession.access_token : '';
       fetch('/api/chat', {
         method: 'POST',
+        signal: abortController.signal,
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${activeToken}`
@@ -2562,6 +2713,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (response.status === 401) {
           if (indicatorRow.parentNode) indicatorRow.parentNode.removeChild(indicatorRow);
           isAiResponding = false;
+          currentChatAbortController = null;
+          setDockStreamingState(false);
           updateMascotStateUI('Sesi Login Berakhir', 'idle');
           rollbackPendingUserMessage();
           showToast('Sesi login Google sudah berakhir. Silakan masuk ulang.', 'warning');
@@ -2573,6 +2726,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (response.status === 429) {
           if (indicatorRow.parentNode) indicatorRow.parentNode.removeChild(indicatorRow);
           isAiResponding = false;
+          currentChatAbortController = null;
+          setDockStreamingState(false);
           updateMascotStateUI('Batas Chat Tercapai', 'idle');
           rollbackPendingUserMessage();
           try {
@@ -2590,10 +2745,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (!response.ok || !response.body) {
-          let errMsg = `Gagal memproses permintaan (HTTP ${response.status}).`;
+          let errMsg = 'Maaf, Codi sedang sibuk sebentar. Yuk klik Coba Lagi!';
           try {
             const errJson = await response.json();
-            if (errJson && errJson.error) errMsg = errJson.error;
+            if (errJson && errJson.error && !/HTTP\s*\d+/i.test(errJson.error)) {
+              errMsg = errJson.error;
+            }
           } catch (parseErr) {}
           throw new Error(errMsg);
         }
@@ -2630,13 +2787,12 @@ document.addEventListener('DOMContentLoaded', () => {
         let buffer = '';
 
         function sanitizeStreamOutput(raw) {
-          // Bersihkan blok <think>...</think> dan tag think yang belum selesai
           let clean = raw.replace(RE_THINK_CLOSED, '');
           clean = clean.replace(RE_THINK_OPEN, '');
           return clean.trimStart();
         }
 
-        // Batched Streaming Renderer via requestAnimationFrame (js-batch-dom-css, rendering-usetransition-loading)
+        // Batched Streaming Renderer via requestAnimationFrame
         let renderRafId = null;
 
         function scheduleBatchedRender() {
@@ -2646,6 +2802,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const displayText = sanitizeStreamOutput(fullText);
             if (displayText) {
               textSpan.innerHTML = renderMarkdownToHtml(displayText);
+              appendInlineCursor();
               scrollChatToBottom(false);
             }
           });
@@ -2686,23 +2843,64 @@ document.addEventListener('DOMContentLoaded', () => {
 
         fullText = sanitizeStreamOutput(fullText);
         if (!fullText) {
-          fullText = 'Wah, jawaban dari AI belum diterima. Coba ulangi pertanyaanmu ya!';
+          fullText = 'Wah, jawaban belum berhasil diterima. Yuk coba tanyakan sekali lagi ya!';
         }
         textSpan.innerHTML = renderMarkdownToHtml(fullText);
         scrollChatToBottom(false);
 
         finalizeAiResponse();
 
-
       }).catch((err) => {
-        console.warn('Gagal memanggil API chat:', err);
-        handleChatRequestError(err && err.message ? err.message : '');
+        const isAbort = err && err.name === 'AbortError';
+        const partial = fullText ? sanitizeStreamOutput(fullText) : '';
+        if (isAbort && partial) {
+          fullText = partial;
+          finalizeAiResponse();
+          showToast('Jawaban dihentikan.');
+          return;
+        }
+        if (!isAbort) {
+          console.warn('Gagal memanggil API chat:', err);
+        }
+        handleChatRequestError(err && err.message ? err.message : '', isAbort);
       });
 
     } catch (err) {
-      console.warn('Gagal memanggil API chat:', err);
-      handleChatRequestError(err && err.message ? err.message : '');
+      const isAbort = err && err.name === 'AbortError';
+      if (!isAbort) {
+        console.warn('Gagal memanggil API chat:', err);
+      }
+      handleChatRequestError(err && err.message ? err.message : '', isAbort);
     }
+  }
+
+  if (textInput) {
+    let focusBlurTimer = null;
+    textInput.addEventListener('input', () => {
+      autoResizeTextInput();
+      syncSendButtonState();
+    });
+    textInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        handleUserSubmit(textInput.value);
+      }
+    });
+    textInput.addEventListener('focus', () => {
+      if (focusBlurTimer) clearTimeout(focusBlurTimer);
+      if (views.chatWorkspace) {
+        views.chatWorkspace.classList.add('is-input-focused');
+      }
+    });
+    textInput.addEventListener('blur', () => {
+      if (focusBlurTimer) clearTimeout(focusBlurTimer);
+      focusBlurTimer = setTimeout(() => {
+        if (views.chatWorkspace) {
+          views.chatWorkspace.classList.remove('is-input-focused');
+        }
+      }, 140);
+    });
+    syncSendButtonState();
   }
 
   if (chatForm) {
@@ -2737,6 +2935,8 @@ document.addEventListener('DOMContentLoaded', () => {
           (transcript, isFinal) => {
             if (textInput) {
               textInput.value = transcript;
+              autoResizeTextInput();
+              syncSendButtonState();
             }
           },
           // onError
@@ -2783,17 +2983,38 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // 12. Landing Page Access Action (Direct to Google Login Modal)
-  const waitlistForm = document.getElementById('waitlist-form');
-  const emailInput = document.getElementById('waitlist-input') || document.getElementById('waitlist-email');
-
-  if (waitlistForm && emailInput) {
-    waitlistForm.addEventListener('submit', (e) => {
-      e.preventDefault();
-      emailInput.value = '';
+  // 12. Landing Page Access Actions (Direct to Google Login Modal or Teacher Selection)
+  const heroGoogleCta = document.getElementById('hero-google-cta');
+  if (heroGoogleCta) {
+    heroGoogleCta.addEventListener('click', () => {
+      if (currentUser) {
+        showView('teacherSelect');
+        return;
+      }
       openAuthModal();
     });
   }
+
+  document.querySelectorAll('.btn-preview-enter').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const teacherId = btn.getAttribute('data-preview-teacher');
+      const profiles = window.CodiAI && window.CodiAI.TEACHER_PROFILES;
+      if (currentUser && currentSession) {
+        if (teacherId && profiles && profiles[teacherId]) {
+          enterTeacherWorkspace(teacherId);
+        } else {
+          showView('teacherSelect');
+        }
+        return;
+      }
+      if (teacherId && profiles && profiles[teacherId]) {
+        try {
+          localStorage.setItem('codi_pending_teacher', teacherId);
+        } catch (e) {}
+      }
+      openAuthModal();
+    });
+  });
 
   // 13. Mascot Stage Size Toggle (Compact / Expanded)
   const btnToggleMascotSize = document.getElementById('btn-toggle-mascot-size');
@@ -2870,12 +3091,12 @@ document.addEventListener('DOMContentLoaded', () => {
     btn.addEventListener('click', toggleTheme);
   });
 
-  // Default theme is dark unless explicitly set to light
-  let activeTheme = 'dark';
+  // Default theme is light unless explicitly set to dark
+  let activeTheme = 'light';
   try {
     const savedTheme = localStorage.getItem('codi_theme');
-    if (savedTheme === 'light') {
-      activeTheme = 'light';
+    if (savedTheme === 'dark') {
+      activeTheme = 'dark';
     }
   } catch (e) {}
   updateThemeUI(activeTheme);
@@ -2888,7 +3109,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       if (!cfg || !cfg.configured || !cfg.supabaseUrl || !cfg.supabaseAnonKey || !window.supabase) {
         supabaseConfigured = false;
-        document.documentElement.classList.remove('has-active-session');
+        document.documentElement.classList.remove('has-active-session', 'is-oauth-callback');
         showView('landing');
         return;
       }
@@ -2912,7 +3133,7 @@ document.addEventListener('DOMContentLoaded', () => {
       } else {
         currentUser = null;
         currentSession = null;
-        document.documentElement.classList.remove('has-active-session');
+        document.documentElement.classList.remove('has-active-session', 'is-oauth-callback');
         showView('landing');
       }
 
@@ -2938,7 +3159,7 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     } catch (err) {
       console.warn('Supabase init error:', err);
-      document.documentElement.classList.remove('has-active-session');
+      document.documentElement.classList.remove('has-active-session', 'is-oauth-callback');
       showView('landing');
     }
   }
