@@ -280,10 +280,11 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 6px;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid var(--border-subtle);
-  border-radius: 10px;
-  padding: 0 16px;
+  border-radius: var(--radius-pill);
+  padding: 0 16px 0 12px;
   font-size: 0.84rem;
   font-weight: 600;
   color: var(--text-muted);
@@ -296,9 +297,9 @@
 }
 
 .btn-logout:hover {
-  background: rgba(255, 255, 255, 0.10);
-  border-color: rgba(255, 255, 255, 0.22);
-  color: var(--text-primary);
+  background: rgba(239, 68, 68, 0.14);
+  border-color: rgba(239, 68, 68, 0.35);
+  color: #FCA5A5;
   transform: translateY(-1px);
 }
 

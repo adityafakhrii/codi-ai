@@ -1,5 +1,5 @@
-// Codi AI PWA Service Worker v3.4.0 (Stop Icon & Header Quota Pill)
-const CACHE_NAME = 'codi-ai-cache-v34';
+// Codi AI PWA Service Worker v3.6.0 (Teacher Select Header Consistency)
+const CACHE_NAME = 'codi-ai-cache-v36';
 const STATIC_ASSETS = [
   '/',
   '/index.html',

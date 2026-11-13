@@ -5,8 +5,6 @@
  */
 
 document.addEventListener('DOMContentLoaded', () => {
-  document.documentElement.classList.add('app-mounted');
-
   // 1. Initialize Lucide Icons Helper
   function refreshIcons() {
     if (window.lucide && typeof lucide.createIcons === 'function') {
@@ -771,6 +769,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (viewKey === 'landing' && views.landing) {
       views.landing.style.display = 'block';
     }
+
+    document.documentElement.classList.remove('is-oauth-callback', 'has-active-teacher-view', 'has-active-workspace-view');
+    document.documentElement.classList.add('app-mounted');
 
     window.scrollTo({ top: 0, behavior: 'smooth' });
     refreshIcons();

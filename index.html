@@ -102,12 +102,9 @@
       href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap">
   </noscript>
 
-  <!-- Stylesheets: style.css is immediate; workspace.css is deferred for landing page -->
+  <!-- Stylesheets -->
   <link rel="stylesheet" href="/css/style.css">
-  <link rel="preload" as="style" href="/css/workspace.css" onload="this.onload=null;this.rel='stylesheet'">
-  <noscript>
-    <link rel="stylesheet" href="/css/workspace.css">
-  </noscript>
+  <link rel="stylesheet" href="/css/workspace.css">
 
   <!-- Preload Real 3D Mascot GLB and Three.js Engine Directly -->
   <link rel="preload" as="fetch" href="/models/codi-mascot.glb?v=20261019_real" type="model/gltf-binary" crossorigin>
@@ -133,27 +130,30 @@
           }
         }
         var isOAuthRedirect = window.location.search.indexOf('code=') !== -1 || window.location.hash.indexOf('access_token=') !== -1;
+        var savedView = localStorage.getItem('codi_active_view');
         if (isOAuthRedirect) {
-          document.documentElement.classList.add('is-oauth-callback');
-        } else if (hasSupabaseSession && localStorage.getItem('codi_active_view')) {
-          document.documentElement.classList.add('has-active-session');
+          document.documentElement.classList.add('is-oauth-callback', 'has-active-teacher-view');
+        } else if (hasSupabaseSession && savedView === 'chatWorkspace') {
+          document.documentElement.classList.add('has-active-session', 'has-active-workspace-view');
+        } else if (hasSupabaseSession && savedView === 'teacherSelect') {
+          document.documentElement.classList.add('has-active-session', 'has-active-teacher-view');
         }
       } catch (e) { }
     })();
   </script>
   <style>
-    /* Cegah flash landing page sebelum JavaScript terinisialisasi saat sesi aktif atau callback OAuth */
+    /* Cegah flash landing page sebelum showView() selesai menentukan tampilan aktif */
     html.has-active-session:not(.app-mounted) #landing-page-view,
     html.is-oauth-callback:not(.app-mounted) #landing-page-view {
       display: none !important;
     }
 
-    html.has-active-session:not(.app-mounted) #chat-workspace-view {
+    html.has-active-workspace-view:not(.app-mounted) #chat-workspace-view {
       display: flex !important;
     }
 
-    html.is-oauth-callback:not(.app-mounted) #teacher-select-view {
-      display: block !important;
+    html.has-active-teacher-view:not(.app-mounted) #teacher-select-view {
+      display: flex !important;
     }
   </style>
 </head>
@@ -631,6 +631,7 @@
               <img src="/icons/icon.svg" alt="Codi AI Mascot" width="32" height="32" class="brand-mascot-img">
             </div>
             <span class="brand-wordmark">CODI AI</span>
+            <span class="brand-beta-badge">BETA</span>
           </a>
 
           <div class="header-actions">
@@ -657,7 +658,17 @@
                 <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
               </svg>
             </button>
-            <button type="button" class="btn-logout" id="btn-logout-from-select">Keluar</button>
+            <button type="button" class="btn-logout" id="btn-logout-from-select"
+              aria-label="Keluar dari akun Codi AI" title="Keluar">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                class="lucide lucide-log-out" aria-hidden="true">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                <polyline points="16 17 21 12 16 7" />
+                <line x1="21" x2="9" y1="12" y2="12" />
+              </svg>
+              <span>Keluar</span>
+            </button>
           </div>
         </div>
       </div>
